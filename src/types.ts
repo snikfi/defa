@@ -1,4 +1,5 @@
 export type BristolType = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export type SatisfactionRating = 1 | 2 | 3 | 4 | 5;
 
 export type RangeKey = 'today' | '7d' | '30d' | '90d' | 'year' | 'lifetime';
 
@@ -11,7 +12,7 @@ export type MovementEntry = {
   id: string;
   createdAt: string;
   movementTime: string;
-  satisfactionRating: number;
+  satisfactionRating: SatisfactionRating;
   bristolType: BristolType;
   notes: string;
   tags: string[];

@@ -36,6 +36,14 @@ function parseBristolType(value: number | undefined): MovementEntry['bristolType
   return 4;
 }
 
+function parseSatisfactionRating(value: number | undefined): MovementEntry['satisfactionRating'] {
+  if (value === 1 || value === 2 || value === 3 || value === 4 || value === 5) {
+    return value;
+  }
+
+  return 3;
+}
+
 function mergeEntries(localEntries: MovementEntry[], remoteEntries: MovementEntry[]) {
   const combined = new Map<string, MovementEntry>();
 
@@ -81,7 +89,7 @@ export async function hydrateEntriesFromCloud(localEntries: MovementEntry[], use
       createdAt: row.created_at,
       updatedAt: typeof row.updated_at === 'string' ? row.updated_at : row.created_at,
       movementTime: row.movement_time,
-      satisfactionRating: typeof row.satisfaction_rating === 'number' ? row.satisfaction_rating : 3,
+      satisfactionRating: parseSatisfactionRating(row.satisfaction_rating),
       bristolType: parseBristolType(row.bristol_type),
       notes: typeof row.notes === 'string' ? row.notes : '',
       tags: (Array.isArray(row.bowel_movement_tags) ? row.bowel_movement_tags : [])
