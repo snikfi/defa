@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Digest App Icon</title>
+  <desc id="desc">Rounded app icon with D mark and gradient background.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="60%" stop-color="#0ea5a3"/>
+      <stop offset="100%" stop-color="#22c55e"/>
+    </linearGradient>
+  </defs>
+  <rect x="24" y="24" width="464" height="464" rx="120" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="144" fill="#050816" fill-opacity="0.18"/>
+  <path d="M188 150h78c66 0 118 46 118 106 0 60-52 106-118 106h-78V150zm72 54h-18v104h18c40 0 70-22 70-52s-30-52-70-52z" fill="#f8fafc"/>
+</svg>

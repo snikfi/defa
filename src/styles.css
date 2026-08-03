@@ -115,6 +115,13 @@ button {
   backdrop-filter: blur(20px);
   box-shadow: 0 24px 70px rgba(2, 6, 23, 0.35);
 }
+.topbar__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
 
 .brand {
   display: flex;
@@ -589,6 +596,11 @@ button {
 
 .pill--blue {
   border: 1px solid rgba(59, 130, 246, 0.25);
+}
+.pill--amber {
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.16);
+  color: #fef3c7;
 }
 
 .filter-bar {

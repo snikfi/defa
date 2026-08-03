@@ -11,6 +11,7 @@ import { HistoryPage } from './pages/HistoryPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AuthPage } from './pages/AuthPage';
+import { InstallPromptButton } from './components/InstallPromptButton';
 import type { QuickLogValues } from './components/QuickLogForm';
 
 const navItems = [
@@ -21,6 +22,7 @@ const navItems = [
 ] as const;
 
 const STORAGE_LAST_SYNC_USER_ID = 'bowel-tracker.last-sync-user-id.v1';
+const APP_ENV = import.meta.env.VITE_APP_ENV ?? (import.meta.env.PROD ? 'production' : 'development');
 
 function App() {
   const [entries, setEntries] = useState<MovementEntry[]>(() => loadEntries());
@@ -284,11 +286,16 @@ function App() {
               </NavLink>
             ))}
           </nav>
-          {canUseCloudSync() ? (
-            <button type="button" className="ghost-button" onClick={() => void handleSignOut()}>
-              Sign out
-            </button>
-          ) : null}
+
+          <div className="topbar__actions">
+            {APP_ENV !== 'production' ? <span className="pill pill--amber">{APP_ENV}</span> : null}
+            <InstallPromptButton />
+            {canUseCloudSync() ? (
+              <button type="button" className="ghost-button" onClick={() => void handleSignOut()}>
+                Sign out
+              </button>
+            ) : null}
+          </div>
         </header>
 
         <motion.main initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>

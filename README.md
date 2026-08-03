@@ -71,3 +71,40 @@ VITE_OWNER_EMAIL=you@example.com
 - Use HTTPS only.
 - Keep anon key in frontend env only; never expose service role key in client.
 - For web hosting, set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in the deployment environment.
+
+## PWA (Install Prompt + Custom Icon)
+
+- The app now ships with:
+  - Web app manifest at public/manifest.webmanifest
+  - Custom icons at public/icons/app-icon.svg and public/icons/app-icon-maskable.svg
+  - Service worker at public/sw.js
+- On supported browsers, an Install app button appears in the top bar when install is available.
+
+## Monitoring
+
+### 1) Uptime Monitoring
+
+- A health endpoint is available at /healthz and returns ok.
+- Configure your monitor provider (for example UptimeRobot, Better Stack, or Pingdom) to ping:
+  - https://YOUR_DOMAIN/healthz
+
+### 2) Client Error Monitoring
+
+- Optional webhook reporting is available through:
+  - VITE_MONITORING_WEBHOOK_URL
+- The app reports unhandled window errors and unhandled promise rejections with path, user agent, and timestamp.
+
+## Staging Workflow (Safe Releases)
+
+- netlify.toml now sets:
+  - production deploys -> VITE_APP_ENV=production
+  - deploy previews + branch deploys -> VITE_APP_ENV=staging
+- In the UI, non-production builds show an environment badge.
+
+Recommended flow:
+
+1. Create/use a develop branch for in-progress work.
+2. Push develop to GitHub.
+3. In Netlify, enable Branch deploys for develop.
+4. Test on the develop Netlify URL.
+5. Merge develop -> main only when verified.
