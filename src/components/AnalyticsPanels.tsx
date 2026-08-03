@@ -8,7 +8,7 @@ type AnalyticsPanelsProps = {
   frequency: Array<{ label: string; value: number }>;
   satisfaction: Array<{ date: string; value: number }>;
   bristol: Array<{ name: string; value: number }>;
-  heatmap: Array<{ hour: string; value: number }>;
+  heatmap: Array<{ day: string; label: string; value: number }>;
   onRangeChange: (range: RangeKey) => void;
 };
 
@@ -70,12 +70,16 @@ export function AnalyticsPanels({ range, frequency, satisfaction, bristol, heatm
           </div>
         </SectionCard>
 
-        <SectionCard title="Time heatmap" description="When movements usually happen during the day.">
+        <SectionCard title="Daily movement grid" description="Days with zero records are shown as No movement.">
           <div className="heatmap-grid" aria-label="time heatmap">
             {heatmap.length ? heatmap.map((item) => (
-              <div key={item.hour} className="heatmap-cell" style={{ '--intensity': Math.min(1, item.value / 4) } as CSSProperties}>
-                <strong>{item.hour}:00</strong>
-                <span>{item.value}</span>
+              <div
+                key={item.day}
+                className={item.value === 0 ? 'heatmap-cell heatmap-cell--empty' : 'heatmap-cell'}
+                style={{ '--intensity': Math.min(1, item.value / 4) } as CSSProperties}
+              >
+                <strong>{item.label}</strong>
+                <span>{item.value === 0 ? 'No movement' : `${item.value} movement${item.value > 1 ? 's' : ''}`}</span>
               </div>
             )) : <p className="empty-state">No data in this range yet.</p>}
           </div>

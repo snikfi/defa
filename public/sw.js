@@ -1,5 +1,5 @@
-const CACHE_NAME = 'digest-cache-v1';
-const PRECACHE_URLS = ['/', '/manifest.webmanifest', '/icons/app-icon.svg', '/icons/app-icon-maskable.svg'];
+const CACHE_NAME = 'digest-cache-v2';
+const PRECACHE_URLS = ['/', '/manifest.webmanifest', '/icons/app-icon.svg', '/icons/app-icon-maskable.svg', '/healthz'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -32,19 +32,38 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  event.respondWith(
-    caches.match(request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
+  const isDocumentRequest = request.mode === 'navigate';
 
-      return fetch(request)
+  if (isDocumentRequest) {
+    event.respondWith(
+      fetch(request)
         .then((networkResponse) => {
           const copy = networkResponse.clone();
           void caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
           return networkResponse;
         })
-        .catch(() => caches.match('/'));
-    }),
+        .catch(async () => {
+          const cached = await caches.match(request);
+          return cached || caches.match('/');
+        }),
+    );
+    return;
+  }
+
+  event.respondWith(
+    fetch(request)
+      .then((networkResponse) => {
+        const copy = networkResponse.clone();
+        void caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+        return networkResponse;
+      })
+      .catch(async () => {
+        const cached = await caches.match(request);
+        if (cached) {
+          return cached;
+        }
+
+        return fetch(request);
+      }),
   );
 });

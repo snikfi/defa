@@ -808,6 +808,17 @@ button {
   font-weight: 700;
 }
 
+.heatmap-cell--empty {
+  background: rgba(8, 13, 28, 0.35);
+  border-style: dashed;
+}
+
+.heatmap-cell--empty span {
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
 .settings-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }

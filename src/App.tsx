@@ -101,10 +101,8 @@ function App() {
 
     const unsubscribe = onAuthStateChange(async () => {
       const id = await getCurrentUserId();
-      setEntries([]);
       setUserId(id);
       setSyncStatus(id ? 'Waiting for first sync' : 'Sign in required');
-      hydrationCompleteRef.current = false;
     });
 
     return () => {

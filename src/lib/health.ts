@@ -1,6 +1,6 @@
-import { startOfDay, startOfWeek, subDays } from 'date-fns';
+import { format, startOfDay, startOfWeek, subDays } from 'date-fns';
 import type { MovementEntry, RangeKey } from '../types';
-import { gapInHours, hourBucket, sameDay, toDate } from './date';
+import { gapInHours, sameDay, toDate } from './date';
 
 export const bristolDescriptions = {
   1: 'Separate hard lumps',
@@ -135,19 +135,26 @@ export function getChartSeries(entries: MovementEntry[], range: RangeKey) {
     return accumulator;
   }, {});
 
-  const hours = filtered.reduce<Record<string, number>>((accumulator, entry) => {
-    const key = hourBucket(entry.movementTime);
+  const dayCounts = filtered.reduce<Record<string, number>>((accumulator, entry) => {
+    const key = format(toDate(entry.movementTime), 'yyyy-MM-dd');
     accumulator[key] = (accumulator[key] ?? 0) + 1;
     return accumulator;
   }, {});
+
+  const coverageDates = getCoverageDates(range, filtered);
 
   return {
     frequency: Object.entries(frequency).map(([label, value]) => ({ label, value })),
     satisfaction,
     bristol: Object.entries(bristol).map(([name, value]) => ({ name, value })),
-    heatmap: Object.entries(hours)
-      .map(([hour, value]) => ({ hour, value }))
-      .sort((left, right) => Number(left.hour) - Number(right.hour)),
+    heatmap: coverageDates.map((date) => {
+      const key = format(date, 'yyyy-MM-dd');
+      return {
+        day: key,
+        label: format(date, 'EEE, MMM d'),
+        value: dayCounts[key] ?? 0,
+      };
+    }),
   };
 }
 
@@ -214,4 +221,35 @@ function formatRangeLabel(entry: MovementEntry, range: RangeKey) {
   }
 
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function getCoverageDates(range: RangeKey, filtered: MovementEntry[]) {
+  const today = startOfDay(new Date());
+  const start =
+    range === 'today'
+      ? today
+      : range === '7d'
+        ? subDays(today, 6)
+        : range === '30d'
+          ? subDays(today, 29)
+          : range === '90d'
+            ? subDays(today, 89)
+            : range === 'year'
+              ? subDays(today, 364)
+              : filtered.length
+                ? subDays(today, Math.min(179, Math.max(0, differenceInDays(today, startOfDay(toDate(filtered[0].movementTime))))))
+                : subDays(today, 29);
+
+  const days: Date[] = [];
+  let cursor = start;
+  while (cursor <= today) {
+    days.push(cursor);
+    cursor = subDays(cursor, -1);
+  }
+
+  return days;
+}
+
+function differenceInDays(left: Date, right: Date) {
+  return Math.floor((left.getTime() - right.getTime()) / 86_400_000);
 }
