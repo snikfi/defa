@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Navigate, NavLink, Route, Routes } from 'react-router-dom';
 import { defaultTags } from './data/mockData';
 import type { MovementEntry, RangeKey } from './types';
-import { createEntry, loadEntries, persistEntries, remapEntryIds } from './lib/entries';
+import { createEntry, loadEntries, persistEntries } from './lib/entries';
 import { canUseCloudSync, hydrateEntriesFromCloud, pushEntriesToCloud } from './lib/cloudSync';
 import { getConfiguredOwnerEmail, getCurrentUserId, onAuthStateChange, signInOwner, signOutOwner } from './lib/supabase';
 import { DashboardPage } from './pages/DashboardPage';
@@ -21,7 +21,6 @@ const navItems = [
   { path: '/settings', label: 'Settings' },
 ] as const;
 
-const STORAGE_LAST_SYNC_USER_ID = 'bowel-tracker.last-sync-user-id.v1';
 const APP_ENV = import.meta.env.VITE_APP_ENV ?? (import.meta.env.PROD ? 'production' : 'development');
 
 function App() {
@@ -102,6 +101,7 @@ function App() {
 
     const unsubscribe = onAuthStateChange(async () => {
       const id = await getCurrentUserId();
+      setEntries([]);
       setUserId(id);
       setSyncStatus(id ? 'Waiting for first sync' : 'Sign in required');
       hydrationCompleteRef.current = false;
@@ -112,25 +112,6 @@ function App() {
       unsubscribe();
     };
   }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    if (!canUseCloudSync() || !userId) {
-      return;
-    }
-
-    const previousUserId = window.localStorage.getItem(STORAGE_LAST_SYNC_USER_ID);
-
-    if (previousUserId !== userId && entries.length) {
-      const remappedEntries = remapEntryIds(entries);
-      replaceEntries(remappedEntries);
-    }
-
-    window.localStorage.setItem(STORAGE_LAST_SYNC_USER_ID, userId);
-  }, [userId]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -148,7 +129,7 @@ function App() {
 
       try {
         setSyncStatus('Syncing from cloud...');
-        const merged = await hydrateEntriesFromCloud(entries, userId);
+        const merged = await hydrateEntriesFromCloud([], userId);
 
         if (!isCancelled) {
           updateEntries(merged);
@@ -212,6 +193,7 @@ function App() {
   async function handleSignOut() {
     try {
       await signOutOwner();
+      setEntries([]);
       setUserId(null);
       setSyncStatus('Sign in required');
     } catch (error) {

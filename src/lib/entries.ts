@@ -1,11 +1,5 @@
 import type { EntryDraft, MovementEntry } from '../types';
 import { seededEntries } from '../data/mockData';
-import { readStorage, writeStorage } from './storage';
-
-const STORAGE_KEY = 'bowel-tracker.entries.v2';
-
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function generateEntryId() {
   if (typeof globalThis.crypto !== 'undefined' && typeof globalThis.crypto.randomUUID === 'function') {
@@ -30,38 +24,17 @@ function generateEntryId() {
   return `${hex.slice(0, 4).join('')}-${hex.slice(4, 6).join('')}-${hex.slice(6, 8).join('')}-${hex.slice(8, 10).join('')}-${hex.slice(10, 16).join('')}`;
 }
 
-function normalizeEntryIds(entries: MovementEntry[]) {
-  let changed = false;
-
-  const normalized = entries.map((entry) => {
-    if (UUID_REGEX.test(entry.id)) {
-      return entry;
-    }
-
-    changed = true;
-    return {
-      ...entry,
-      id: generateEntryId(),
-      updatedAt: entry.updatedAt ?? new Date().toISOString(),
-    };
-  });
-
-  return { normalized, changed };
-}
-
 export function loadEntries() {
-  const loaded = readStorage<MovementEntry[]>(STORAGE_KEY, seededEntries);
-  const { normalized, changed } = normalizeEntryIds(loaded);
-
-  if (changed) {
-    writeStorage(STORAGE_KEY, normalized);
+  if (typeof window !== 'undefined') {
+    window.localStorage.removeItem('bowel-tracker.entries.v1');
+    window.localStorage.removeItem('bowel-tracker.entries.v2');
   }
 
-  return normalized;
+  return seededEntries;
 }
 
 export function persistEntries(entries: MovementEntry[]) {
-  writeStorage(STORAGE_KEY, entries);
+  void entries;
 }
 
 export function createEntry(draft: EntryDraft) {
@@ -79,12 +52,7 @@ export function createEntry(draft: EntryDraft) {
 }
 
 export function remapEntryIds(entries: MovementEntry[]) {
-  const now = new Date().toISOString();
-  return entries.map((entry) => ({
-    ...entry,
-    id: generateEntryId(),
-    updatedAt: now,
-  }));
+  return entries;
 }
 
 export function csvEscape(value: string) {
