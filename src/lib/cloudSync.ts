@@ -20,6 +20,12 @@ type CloudMovementRecord = {
   bowel_movement_tags?: CloudRelationRecord[];
 };
 
+type CloudMovementRecordWithRequiredFields = CloudMovementRecord & {
+  id: string;
+  created_at: string;
+  movement_time: string;
+};
+
 export function canUseCloudSync() {
   return isSupabaseConfigured && Boolean(supabase);
 }
@@ -42,6 +48,10 @@ function parseSatisfactionRating(value: number | undefined): MovementEntry['sati
   }
 
   return 3;
+}
+
+function hasRequiredMovementFields(row: CloudMovementRecord): row is CloudMovementRecordWithRequiredFields {
+  return typeof row.id === 'string' && typeof row.created_at === 'string' && typeof row.movement_time === 'string';
 }
 
 function mergeEntries(localEntries: MovementEntry[], remoteEntries: MovementEntry[]) {
@@ -83,7 +93,7 @@ export async function hydrateEntriesFromCloud(localEntries: MovementEntry[], use
 
   const remoteEntries = (Array.isArray(data) ? data : [])
     .map((row) => row as CloudMovementRecord)
-    .filter((row) => typeof row.id === 'string' && typeof row.created_at === 'string' && typeof row.movement_time === 'string')
+    .filter(hasRequiredMovementFields)
     .map((row) => ({
       id: row.id,
       createdAt: row.created_at,

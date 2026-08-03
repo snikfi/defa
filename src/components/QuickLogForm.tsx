@@ -1,9 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
-import { Controller, type SubmitHandler, useForm } from 'react-hook-form';
+import { Controller, type Resolver, type SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
-import type { MovementEntry, Tag } from '../types';
+import type { BristolType, MovementEntry, SatisfactionRating, Tag } from '../types';
 import { bristolDescriptions, satisfactionLabels } from '../lib/health';
+
+export type QuickLogValues = {
+  satisfactionRating: SatisfactionRating;
+  bristolType: BristolType;
+  notes: string;
+  tags: string[];
+};
 
 const satisfactionSchema = z.union([
   z.literal(1),
@@ -24,13 +31,11 @@ const bristolTypeSchema = z.union([
 ]);
 
 const schema = z.object({
-  satisfactionRating: z.coerce.number().int().pipe(satisfactionSchema),
-  bristolType: z.coerce.number().int().pipe(bristolTypeSchema),
+  satisfactionRating: satisfactionSchema,
+  bristolType: bristolTypeSchema,
   notes: z.string().max(1000),
   tags: z.array(z.string()),
-});
-
-export type QuickLogValues = z.infer<typeof schema>;
+}) satisfies z.ZodType<QuickLogValues>;
 
 type QuickLogFormProps = {
   tags: Tag[];
@@ -42,7 +47,7 @@ type QuickLogFormProps = {
 
 export function QuickLogForm({ tags, initialValues, editingEntry, onSubmit, onCancel }: QuickLogFormProps) {
   const form = useForm<QuickLogValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(schema) as Resolver<QuickLogValues>,
     defaultValues: initialValues,
   });
 
