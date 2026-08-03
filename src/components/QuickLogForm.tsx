@@ -1,15 +1,33 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, type SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import type { MovementEntry, Tag } from '../types';
 import { bristolDescriptions, satisfactionLabels } from '../lib/health';
 
+const satisfactionSchema = z.union([
+  z.literal(1),
+  z.literal(2),
+  z.literal(3),
+  z.literal(4),
+  z.literal(5),
+]);
+
+const bristolTypeSchema = z.union([
+  z.literal(1),
+  z.literal(2),
+  z.literal(3),
+  z.literal(4),
+  z.literal(5),
+  z.literal(6),
+  z.literal(7),
+]);
+
 const schema = z.object({
-  satisfactionRating: z.coerce.number().int().min(1).max(5),
-  bristolType: z.coerce.number().int().min(1).max(7),
-  notes: z.string().max(1000).default(''),
-  tags: z.array(z.string()).default([]),
+  satisfactionRating: z.coerce.number().int().pipe(satisfactionSchema),
+  bristolType: z.coerce.number().int().pipe(bristolTypeSchema),
+  notes: z.string().max(1000),
+  tags: z.array(z.string()),
 });
 
 export type QuickLogValues = z.infer<typeof schema>;
@@ -28,6 +46,10 @@ export function QuickLogForm({ tags, initialValues, editingEntry, onSubmit, onCa
     defaultValues: initialValues,
   });
 
+  const submitHandler: SubmitHandler<QuickLogValues> = (values) => {
+    onSubmit(values);
+  };
+
   useEffect(() => {
     form.reset(initialValues);
   }, [form, initialValues]);
@@ -35,7 +57,7 @@ export function QuickLogForm({ tags, initialValues, editingEntry, onSubmit, onCa
   const selectedTags = form.watch('tags');
 
   return (
-    <form className="quick-log-form" onSubmit={form.handleSubmit(onSubmit)}>
+    <form className="quick-log-form" onSubmit={form.handleSubmit(submitHandler)}>
       <div className="quick-log-form__grid">
         <div className="field-group">
           <label htmlFor="satisfactionRating">Satisfaction</label>

@@ -1,20 +1,23 @@
 import type { MovementEntry } from '../types';
 import { isSupabaseConfigured, supabase } from './supabase';
 
-type CloudMovementRow = {
-  id: string;
-  created_at: string;
-  updated_at: string;
-  movement_time: string;
-  satisfaction_rating: number;
-  bristol_type: number;
-  notes: string;
-  bowel_movement_tags: Array<{
-    tag_id: string;
-    tags: {
-      normalized_name: string;
-    } | null;
-  }>;
+type CloudTagRecord = {
+  normalized_name?: string;
+};
+
+type CloudRelationRecord = {
+  tags?: CloudTagRecord | null;
+};
+
+type CloudMovementRecord = {
+  id?: string;
+  created_at?: string;
+  updated_at?: string;
+  movement_time?: string;
+  satisfaction_rating?: number;
+  bristol_type?: number;
+  notes?: string;
+  bowel_movement_tags?: CloudRelationRecord[];
 };
 
 export function canUseCloudSync() {
@@ -23,6 +26,14 @@ export function canUseCloudSync() {
 
 function resolveUpdatedTime(entry: MovementEntry) {
   return entry.updatedAt ?? entry.createdAt;
+}
+
+function parseBristolType(value: number | undefined): MovementEntry['bristolType'] {
+  if (value === 1 || value === 2 || value === 3 || value === 4 || value === 5 || value === 6 || value === 7) {
+    return value;
+  }
+
+  return 4;
 }
 
 function mergeEntries(localEntries: MovementEntry[], remoteEntries: MovementEntry[]) {
@@ -62,18 +73,21 @@ export async function hydrateEntriesFromCloud(localEntries: MovementEntry[], use
     throw error;
   }
 
-  const remoteEntries = ((data ?? []) as CloudMovementRow[]).map((row) => ({
-    id: row.id,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    movementTime: row.movement_time,
-    satisfactionRating: row.satisfaction_rating,
-    bristolType: row.bristol_type as MovementEntry['bristolType'],
-    notes: row.notes,
-    tags: row.bowel_movement_tags
-      .map((item) => item.tags?.normalized_name)
-      .filter((value): value is string => Boolean(value)),
-  }));
+  const remoteEntries = (Array.isArray(data) ? data : [])
+    .map((row) => row as CloudMovementRecord)
+    .filter((row) => typeof row.id === 'string' && typeof row.created_at === 'string' && typeof row.movement_time === 'string')
+    .map((row) => ({
+      id: row.id,
+      createdAt: row.created_at,
+      updatedAt: typeof row.updated_at === 'string' ? row.updated_at : row.created_at,
+      movementTime: row.movement_time,
+      satisfactionRating: typeof row.satisfaction_rating === 'number' ? row.satisfaction_rating : 3,
+      bristolType: parseBristolType(row.bristol_type),
+      notes: typeof row.notes === 'string' ? row.notes : '',
+      tags: (Array.isArray(row.bowel_movement_tags) ? row.bowel_movement_tags : [])
+        .map((item) => item.tags?.normalized_name)
+        .filter((value): value is string => typeof value === 'string' && value.length > 0),
+    }));
 
   return mergeEntries(localEntries, remoteEntries);
 }
