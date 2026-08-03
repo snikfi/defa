@@ -37,40 +37,16 @@ export function DashboardPage({
 
   return (
     <div className="stack stack--xl">
-      <section className="hero-panel">
-        <div>
-          <p className="eyebrow">Personal bowel movement tracker</p>
-          <h1>How has your digestive health been recently?</h1>
-          <p className="hero-panel__lede">
-            Log a movement in under ten seconds, review trends instantly, and keep every entry synced for offline-first use.
-          </p>
-        </div>
-        <div className="hero-panel__actions">
-          <a className="primary-button primary-button--large" href="#quick-log">
-            Record bowel movement
-          </a>
-          <p className="hero-panel__hint">Last entry {entries[0] ? timeAgo(entries[0].movementTime) : 'not yet recorded'}.</p>
-        </div>
-      </section>
-
-      <div className="stats-grid">
-        <StatCard label="Today" value={String(summary.today.count)} detail={`${summary.today.average.toFixed(1)}/5 avg satisfaction`} tone="good" />
-        <StatCard label="This Week" value={String(summary.week.count)} detail={`${summary.week.averageBristol.toFixed(1)} average Bristol score`} tone="accent" />
-        <StatCard label="This Month" value={String(summary.month.count)} detail={`Trend: ${summary.month.trend}`} tone="warning" />
-        <StatCard label="Overall" value={String(summary.overall.lifetimeEntries)} detail={`${summary.overall.lifetimeAverage.toFixed(1)}/5 lifetime average`} />
-      </div>
-
       <div id="quick-log" className="dashboard-grid dashboard-grid--two-col">
         <SectionCard
-          eyebrow="Primary action"
-          title={editingEntry ? 'Edit bowel movement' : 'Quick log'}
-          description="The form pre-fills from your previous entry so repeat logging stays fast."
-          action={<span className="pill pill--blue">{editingEntry ? 'Editing' : 'Fast entry'}</span>}
+          eyebrow="Do this first"
+          title={editingEntry ? 'Edit bowel movement' : 'Record a movement'}
+          action={editingEntry ? <span className="pill pill--blue">Editing</span> : undefined}
         >
           <QuickLogForm tags={tags} initialValues={draftValues} editingEntry={editingEntry} onSubmit={onSubmit} onCancel={onCancelEdit} />
         </SectionCard>
 
-        <SectionCard eyebrow="Today" title="Daily timeline" description="A quick visual view of movements for the active day.">
+        <SectionCard eyebrow="Today" title="Daily timeline">
           {timeline.length ? (
             <div className="timeline-list">
               {timeline.map((entry) => (
@@ -89,6 +65,27 @@ export function DashboardPage({
             <p>Time since last: {summary.today.latest ? timeAgo(summary.today.latest.movementTime) : 'No entry yet'}</p>
           </div>
         </SectionCard>
+      </div>
+
+      <section className="hero-panel">
+        <div>
+          <p className="eyebrow">Personal bowel movement tracker</p>
+          <h1>Your summary at a glance</h1>
+          <p className="hero-panel__lede">
+            After logging, review trends instantly and keep every entry synced across devices.
+          </p>
+        </div>
+        <div className="hero-panel__actions">
+          <span className="pill pill--green">Focus: fast logging first</span>
+          <p className="hero-panel__hint">Last entry {entries[0] ? timeAgo(entries[0].movementTime) : 'not yet recorded'}.</p>
+        </div>
+      </section>
+
+      <div className="stats-grid">
+        <StatCard label="Today" value={String(summary.today.count)} detail={`${summary.today.average.toFixed(1)}/5 avg satisfaction`} tone="good" />
+        <StatCard label="This Week" value={String(summary.week.count)} detail={`${summary.week.averageBristol.toFixed(1)} average Bristol score`} tone="accent" />
+        <StatCard label="This Month" value={String(summary.month.count)} detail={`Trend: ${summary.month.trend}`} tone="warning" />
+        <StatCard label="Overall" value={String(summary.overall.lifetimeEntries)} detail={`${summary.overall.lifetimeAverage.toFixed(1)}/5 lifetime average`} />
       </div>
 
       <SectionCard eyebrow="Recent history" title="Latest entries" description="Cards support edit, duplicate, and delete actions.">

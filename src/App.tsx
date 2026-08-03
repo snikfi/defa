@@ -44,7 +44,7 @@ function App() {
       satisfactionRating: source?.satisfactionRating ?? 4,
       bristolType: source?.bristolType ?? 4,
       notes: source?.notes ?? '',
-      tags: source?.tags ?? [],
+      tags: editingEntry ? source?.tags ?? [] : [],
     };
   }, [duplicateSeed, editingEntry, entries]);
 
@@ -274,8 +274,7 @@ function App() {
           <div className="brand">
             <div className="brand__mark">💩</div>
             <div className="brand__copy">
-              <h1>Digest</h1>
-              <p>Personal bowel movement tracker</p>
+              <h1>Defa</h1>
             </div>
           </div>
 
@@ -325,6 +324,14 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </motion.main>
+
+        <nav className="mobile-nav" aria-label="Primary mobile">
+          {navItems.map((item) => (
+            <NavLink key={`mobile-${item.path}`} to={item.path} className={({ isActive }) => (isActive ? 'mobile-nav__link is-active' : 'mobile-nav__link')} end={item.path === '/'}>
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
       </div>
     </div>
   );

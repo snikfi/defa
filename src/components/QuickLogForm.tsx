@@ -37,6 +37,16 @@ const schema = z.object({
   tags: z.array(z.string()),
 }) satisfies z.ZodType<QuickLogValues>;
 
+const bristolVisualGuide: Record<BristolType, { summary: string; cue: string; tone: 'constipated' | 'ideal' | 'loose'; segments: number[] }> = {
+  1: { summary: 'Very hard', cue: 'Pebble-like lumps', tone: 'constipated', segments: [16, 14, 12, 10] },
+  2: { summary: 'Hard', cue: 'Lumpy sausage', tone: 'constipated', segments: [22, 18, 16] },
+  3: { summary: 'Firm-normal', cue: 'Sausage with cracks', tone: 'ideal', segments: [28, 24] },
+  4: { summary: 'Smooth-normal', cue: 'Smooth, soft sausage', tone: 'ideal', segments: [56] },
+  5: { summary: 'Soft', cue: 'Soft blobs', tone: 'loose', segments: [18, 20, 16] },
+  6: { summary: 'Mushy', cue: 'Fluffy pieces', tone: 'loose', segments: [12, 14, 16, 18] },
+  7: { summary: 'Watery', cue: 'No solid pieces', tone: 'loose', segments: [70] },
+};
+
 type QuickLogFormProps = {
   tags: Tag[];
   initialValues: QuickLogValues;
@@ -89,25 +99,34 @@ export function QuickLogForm({ tags, initialValues, editingEntry, onSubmit, onCa
 
         <div className="field-group">
           <label htmlFor="bristolType">Bristol stool type</label>
+          <p className="helper-text">Hard to loose scale. Types 3-4 are usually the most comfortable for many people.</p>
           <Controller
             control={form.control}
             name="bristolType"
             render={({ field }) => (
               <div className="bristol-grid" role="radiogroup" aria-label="Bristol stool type">
-                {[1, 2, 3, 4, 5, 6, 7].map((type) => (
+                {[1, 2, 3, 4, 5, 6, 7].map((type) => {
+                  const guide = bristolVisualGuide[type as BristolType];
+                  const activeClass = field.value === type ? ' is-active' : '';
+                  return (
                   <button
                     key={type}
                     type="button"
-                    className={field.value === type ? 'bristol-card is-active' : 'bristol-card'}
+                    className={`bristol-card bristol-card--${guide.tone}${activeClass}`}
                     onClick={() => field.onChange(type)}
                   >
                     <span className="bristol-card__type">Type {type}</span>
-                    <span className="bristol-card__shape" aria-hidden="true">
-                      {type === 1 || type === 2 ? '◔' : type === 3 || type === 4 ? '◕' : '◯'}
+                    <span className="bristol-card__summary">{guide.summary}</span>
+                    <span className="bristol-card__visual" aria-hidden="true">
+                      {guide.segments.map((segmentWidth, index) => (
+                        <span key={`${type}-${index}`} className="bristol-card__segment" style={{ width: `${segmentWidth}%` }} />
+                      ))}
                     </span>
                     <small>{bristolDescriptions[type as keyof typeof bristolDescriptions]}</small>
+                    <small className="bristol-card__cue">{guide.cue}</small>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             )}
           />
@@ -116,7 +135,6 @@ export function QuickLogForm({ tags, initialValues, editingEntry, onSubmit, onCa
         <div className="field-group field-group--wide">
           <label htmlFor="notes">Notes</label>
           <textarea id="notes" className="textarea" placeholder="Optional context, food, symptoms, or anything noteworthy." {...form.register('notes')} />
-          <p className="helper-text">Speech-to-text can be added later for supported browsers.</p>
         </div>
 
         <div className="field-group field-group--wide">

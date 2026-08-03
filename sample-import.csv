@@ -1,0 +1,5 @@
+"id","created_at","movement_time","satisfaction_rating","bristol_type","notes","tags"
+"f47ac10b-58cc-4372-a567-0e02b2c3d479","2026-08-01T07:42:00.000Z","2026-08-01T07:40:00.000Z","4","3","Normal movement after breakfast","coffee|high-fibre"
+"9a2d3a62-4d2b-4c97-bf50-7343d6d1f8aa","2026-08-01T21:15:00.000Z","2026-08-01T21:10:00.000Z","2","6","Loose stool later in the evening","spicy-food|stress"
+"2f6b1a5e-17fc-4fc5-bf1a-c0cb2f37b318","2026-08-02T12:05:00.000Z","2026-08-02T12:00:00.000Z","5","4","Quick and comfortable","gym|low-fibre"
+"cbf5c7d8-b0e9-4f8c-bdd8-f98d4e1f66a4","2026-08-03T18:30:00.000Z","2026-08-03T18:25:00.000Z","3","5","Slight urgency but manageable","travel|poor-sleep"

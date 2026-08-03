@@ -2,7 +2,7 @@ import type { EntryDraft, MovementEntry } from '../types';
 import { seededEntries } from '../data/mockData';
 import { readStorage, writeStorage } from './storage';
 
-const STORAGE_KEY = 'bowel-tracker.entries.v1';
+const STORAGE_KEY = 'bowel-tracker.entries.v2';
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
