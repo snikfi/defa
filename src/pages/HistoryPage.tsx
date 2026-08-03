@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { MovementEntry, Tag } from '../types';
 import { SectionCard } from '../components/SectionCard';
-import { formatShortDate, formatTime } from '../lib/date';
+import { formatShortDate, formatTime, toTimestamp } from '../lib/date';
 import { bristolDescriptions, satisfactionLabels } from '../lib/health';
 
 type HistoryPageProps = {
@@ -32,7 +32,7 @@ export function HistoryPage({ entries, tags, onEdit, onDuplicate, onDelete }: Hi
 
       return matchesQuery && matchesRating && matchesBristol;
       })
-      .sort((left, right) => +new Date(right.movementTime) - +new Date(left.movementTime));
+        .sort((left, right) => toTimestamp(right.movementTime) - toTimestamp(left.movementTime));
   }, [bristol, entries, query, rating]);
 
   const tagNameById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag.name])), [tags]);

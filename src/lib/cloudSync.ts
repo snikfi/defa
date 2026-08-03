@@ -1,4 +1,5 @@
 import type { MovementEntry } from '../types';
+import { toTimestamp } from './date';
 import { isSupabaseConfigured, supabase } from './supabase';
 
 type CloudTagRecord = {
@@ -69,7 +70,7 @@ function mergeEntries(localEntries: MovementEntry[], remoteEntries: MovementEntr
     combined.set(entry.id, right >= left ? entry : previous);
   });
 
-  return [...combined.values()].sort((left, right) => +new Date(right.movementTime) - +new Date(left.movementTime));
+  return [...combined.values()].sort((left, right) => toTimestamp(right.movementTime) - toTimestamp(left.movementTime));
 }
 
 export async function hydrateEntriesFromCloud(localEntries: MovementEntry[], userId: string | null) {
@@ -228,5 +229,33 @@ export async function pushEntriesToCloud(entries: MovementEntry[], userId: strin
     if (relationInsertError) {
       throw relationInsertError;
     }
+  }
+}
+
+export async function clearAllEntriesFromCloud(userId: string | null) {
+  if (!canUseCloudSync()) {
+    return;
+  }
+
+  if (!userId || !supabase) {
+    return;
+  }
+
+  const { error: deleteMovementError } = await supabase
+    .from('bowel_movements')
+    .delete()
+    .eq('user_id', userId);
+
+  if (deleteMovementError) {
+    throw deleteMovementError;
+  }
+
+  const { error: deleteTagError } = await supabase
+    .from('tags')
+    .delete()
+    .eq('user_id', userId);
+
+  if (deleteTagError) {
+    throw deleteTagError;
   }
 }

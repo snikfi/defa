@@ -1,6 +1,6 @@
 import { format, startOfDay, startOfWeek, subDays } from 'date-fns';
 import type { MovementEntry, RangeKey } from '../types';
-import { gapInHours, sameDay, toDate } from './date';
+import { gapInHours, sameDay, toDate, toTimestamp } from './date';
 
 export const bristolDescriptions = {
   1: 'Separate hard lumps',
@@ -70,8 +70,9 @@ export function getDashboardSummary(entries: MovementEntry[]) {
   const weekEntries = filterByRange(entries, '7d');
   const monthEntries = filterByRange(entries, '30d');
 
-  const ordered = [...entries].sort((left, right) => +toDate(right.movementTime) - +toDate(left.movementTime));
-  const latest = ordered[0];
+  const ordered = [...entries].sort((left, right) => toTimestamp(right.movementTime) - toTimestamp(left.movementTime));
+  const futureToleranceMs = 5 * 60 * 1000;
+  const latest = ordered.find((entry) => toTimestamp(entry.movementTime) <= Date.now() + futureToleranceMs) ?? ordered[0];
   const lifetimeAverage = average(entries.map((entry) => entry.satisfactionRating));
   const averagePerDay = entries.length / Math.max(1, new Set(entries.map((entry) => startOfDay(toDate(entry.movementTime)).toISOString())).size);
 

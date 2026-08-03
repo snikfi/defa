@@ -1,4 +1,5 @@
 import type { EntryDraft, MovementEntry } from '../types';
+import { isValid, parse, parseISO } from 'date-fns';
 import { seededEntries } from '../data/mockData';
 
 function generateEntryId() {
@@ -131,8 +132,8 @@ export function parseCsv(csv: string) {
     }
 
     const id = columns[getIndex('id')]?.trim();
-    const createdAt = columns[getIndex('created_at')]?.trim();
-    const movementTime = columns[getIndex('movement_time')]?.trim();
+    const createdAt = parseTimestampCell(columns[getIndex('created_at')], lineNumber, 'created_at');
+    const movementTime = parseTimestampCell(columns[getIndex('movement_time')], lineNumber, 'movement_time');
     const satisfactionRating = parseSatisfactionRatingCell(columns[getIndex('satisfaction_rating')], lineNumber);
     const bristolType = parseBristolTypeCell(columns[getIndex('bristol_type')], lineNumber);
     const notes = columns[getIndex('notes')] ?? '';
@@ -239,4 +240,56 @@ function parseNumericCell(rawValue: string | undefined) {
 
   const match = value.match(/-?\d+(?:\.\d+)?/);
   return match ? Number(match[0]) : Number.NaN;
+}
+
+function parseTimestampCell(rawValue: string | undefined, lineNumber: number, fieldName: 'created_at' | 'movement_time') {
+  const value = (rawValue ?? '').trim();
+  if (!value) {
+    throw new Error(`Missing ${fieldName} at line ${lineNumber}.`);
+  }
+
+  if (/^\d+$/.test(value)) {
+    const asNumber = Number(value);
+    if (Number.isFinite(asNumber)) {
+      const epochMs = value.length <= 10 ? asNumber * 1000 : asNumber;
+      const dateFromEpoch = new Date(epochMs);
+      if (!Number.isNaN(dateFromEpoch.getTime())) {
+        return dateFromEpoch.toISOString();
+      }
+    }
+  }
+
+  const isoCandidate = parseISO(value);
+  if (isValid(isoCandidate)) {
+    return isoCandidate.toISOString();
+  }
+
+  const knownFormats = [
+    'yyyy-MM-dd HH:mm:ss',
+    'yyyy-MM-dd HH:mm',
+    'yyyy-MM-dd',
+    'M/d/yyyy h:mm a',
+    'M/d/yyyy H:mm:ss',
+    'M/d/yyyy H:mm',
+    'M/d/yyyy',
+    'd/M/yyyy H:mm:ss',
+    'd/M/yyyy H:mm',
+    'd/M/yyyy',
+    'MMM d, yyyy h:mm a',
+    'MMM d, yyyy',
+  ] as const;
+
+  for (const format of knownFormats) {
+    const parsed = parse(value, format, new Date());
+    if (isValid(parsed)) {
+      return parsed.toISOString();
+    }
+  }
+
+  const parsedByNative = new Date(value);
+  if (!Number.isNaN(parsedByNative.getTime())) {
+    return parsedByNative.toISOString();
+  }
+
+  throw new Error(`Invalid ${fieldName} at line ${lineNumber}. Use an ISO timestamp or a recognized date format.`);
 }
