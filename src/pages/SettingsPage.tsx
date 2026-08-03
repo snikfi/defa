@@ -10,7 +10,11 @@ type SettingsPageProps = {
 };
 
 export function SettingsPage({ entries, onImportEntries, syncStatus }: SettingsPageProps) {
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState<{ tone: 'idle' | 'progress' | 'success' | 'error'; message: string }>({
+    tone: 'idle',
+    message: 'CSV validation runs before records are replaced.',
+  });
+  const [selectedFileName, setSelectedFileName] = useState('');
 
   return (
     <div className="stack stack--lg">
@@ -28,19 +32,30 @@ export function SettingsPage({ entries, onImportEntries, syncStatus }: SettingsP
                 const file = event.target.files?.[0];
                 if (!file) return;
 
+                setSelectedFileName(file.name);
+                setStatus({ tone: 'progress', message: `Importing ${file.name}...` });
+
                 try {
                   const text = await file.text();
                   const imported = parseCsv(text);
                   onImportEntries(imported);
-                  setStatus(`Imported ${imported.length} entries successfully.`);
+                  setStatus({ tone: 'success', message: `Imported ${imported.length} entries successfully.` });
                 } catch (error) {
-                  setStatus(error instanceof Error ? error.message : 'Unable to import CSV.');
+                  setStatus({ tone: 'error', message: error instanceof Error ? error.message : 'Unable to import CSV.' });
+                } finally {
+                  // Allow selecting the same file again and re-triggering import.
+                  event.currentTarget.value = '';
                 }
               }}
             />
           </label>
         </div>
-        <p className="helper-text">{status || 'CSV validation runs before records are replaced.'}</p>
+
+        <p className="helper-text">Selected file: {selectedFileName || 'None yet'}</p>
+        {status.tone === 'success' ? <p className="form-feedback form-feedback--success" role="status" aria-live="polite">{status.message}</p> : null}
+        {status.tone === 'error' ? <p className="form-feedback form-feedback--error" role="alert">{status.message}</p> : null}
+        {status.tone === 'progress' ? <p className="helper-text" role="status" aria-live="polite">{status.message}</p> : null}
+        {status.tone === 'idle' ? <p className="helper-text">{status.message}</p> : null}
         <p className="helper-text">Cloud sync: {syncStatus}</p>
       </SectionCard>
     </div>

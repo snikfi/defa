@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Controller, type Resolver, type SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import type { BristolType, MovementEntry, SatisfactionRating, Tag } from '../types';
@@ -51,7 +51,7 @@ type QuickLogFormProps = {
   tags: Tag[];
   initialValues: QuickLogValues;
   editingEntry?: MovementEntry | null;
-  onSubmit: (values: QuickLogValues) => void;
+  onSubmit: (values: QuickLogValues) => void | Promise<void>;
   onCancel?: () => void;
 };
 
@@ -60,14 +60,37 @@ export function QuickLogForm({ tags, initialValues, editingEntry, onSubmit, onCa
     resolver: zodResolver(schema) as Resolver<QuickLogValues>,
     defaultValues: initialValues,
   });
+  const [submitState, setSubmitState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const feedbackTimerRef = useRef<number | null>(null);
 
-  const submitHandler: SubmitHandler<QuickLogValues> = (values) => {
-    onSubmit(values);
+  const submitHandler: SubmitHandler<QuickLogValues> = async (values) => {
+    setSubmitState('saving');
+
+    try {
+      await Promise.resolve(onSubmit(values));
+      setSubmitState('saved');
+
+      if (feedbackTimerRef.current) {
+        window.clearTimeout(feedbackTimerRef.current);
+      }
+
+      feedbackTimerRef.current = window.setTimeout(() => {
+        setSubmitState('idle');
+      }, 2200);
+    } catch {
+      setSubmitState('error');
+    }
   };
 
   useEffect(() => {
     form.reset(initialValues);
   }, [form, initialValues]);
+
+  useEffect(() => () => {
+    if (feedbackTimerRef.current) {
+      window.clearTimeout(feedbackTimerRef.current);
+    }
+  }, []);
 
   const selectedTags = form.watch('tags');
 
@@ -167,10 +190,17 @@ export function QuickLogForm({ tags, initialValues, editingEntry, onSubmit, onCa
             Cancel edit
           </button>
         ) : null}
-        <button type="submit" className="primary-button">
-          {editingEntry ? 'Update movement' : 'Record bowel movement'}
+        <button type="submit" className="primary-button" disabled={submitState === 'saving'}>
+          {submitState === 'saving'
+            ? (editingEntry ? 'Updating...' : 'Recording...')
+            : submitState === 'saved'
+              ? (editingEntry ? 'Updated' : 'Recorded')
+              : (editingEntry ? 'Update movement' : 'Record bowel movement')}
         </button>
       </div>
+
+      {submitState === 'saved' ? <p className="form-feedback form-feedback--success">Saved. Your entry has been recorded.</p> : null}
+      {submitState === 'error' ? <p className="form-feedback form-feedback--error">Could not save this entry. Please try again.</p> : null}
     </form>
   );
 }

@@ -77,29 +77,166 @@ export function toCsv(entries: MovementEntry[]) {
 }
 
 export function parseCsv(csv: string) {
-  const rows = csv.trim().split(/\r?\n/);
+  const rows = csv
+    .split(/\r?\n/)
+    .map((row) => row.trim())
+    .filter(Boolean);
+
   if (rows.length < 2) {
     throw new Error('CSV must contain a header and at least one row.');
   }
 
-  const [, ...dataRows] = rows;
-  const entries: MovementEntry[] = dataRows.map((row) => {
-    const columns = row.match(/"(?:[^"]|"")*"/g)?.map((value) => value.slice(1, -1).replaceAll('""', '"'));
-    if (!columns || columns.length < 7) {
-      throw new Error('Invalid CSV row.');
+  const detectedDelimiter = detectDelimiter(rows[0]);
+  const headerColumns = parseCsvLine(rows[0], detectedDelimiter).map((value) => normalizeHeader(value));
+
+  const indexByName = new Map(headerColumns.map((name, index) => [name, index]));
+  const requiredHeaders = ['id', 'created_at', 'movement_time', 'satisfaction_rating', 'bristol_type', 'notes', 'tags'] as const;
+  const hasNamedHeader = requiredHeaders.every((name) => indexByName.has(name));
+
+  const positionalIndexes = {
+    id: 0,
+    created_at: 1,
+    movement_time: 2,
+    satisfaction_rating: 3,
+    bristol_type: 4,
+    notes: 5,
+    tags: 6,
+  } as const;
+
+  const getIndex = (name: keyof typeof positionalIndexes) => {
+    if (hasNamedHeader) {
+      return indexByName.get(name) ?? positionalIndexes[name];
+    }
+
+    return positionalIndexes[name];
+  };
+
+  const dataRows = rows.slice(1);
+  const entries: MovementEntry[] = dataRows.map((row, rowIndex) => {
+    const lineNumber = rowIndex + 2;
+    const columns = parseCsvLine(row, detectedDelimiter);
+
+    const requiredIndex = Math.max(
+      getIndex('id'),
+      getIndex('created_at'),
+      getIndex('movement_time'),
+      getIndex('satisfaction_rating'),
+      getIndex('bristol_type'),
+      getIndex('notes'),
+      getIndex('tags'),
+    );
+
+    if (columns.length <= requiredIndex) {
+      throw new Error(`Invalid CSV row at line ${lineNumber}.`);
+    }
+
+    const id = columns[getIndex('id')]?.trim();
+    const createdAt = columns[getIndex('created_at')]?.trim();
+    const movementTime = columns[getIndex('movement_time')]?.trim();
+    const satisfactionRating = parseSatisfactionRatingCell(columns[getIndex('satisfaction_rating')], lineNumber);
+    const bristolType = parseBristolTypeCell(columns[getIndex('bristol_type')], lineNumber);
+    const notes = columns[getIndex('notes')] ?? '';
+    const tagsColumn = columns[getIndex('tags')] ?? '';
+
+    if (!id || !createdAt || !movementTime) {
+      throw new Error(`Missing required values at line ${lineNumber}.`);
     }
 
     return {
-      id: columns[0],
-      createdAt: columns[1],
-      updatedAt: columns[1],
-      movementTime: columns[2],
-      satisfactionRating: Number(columns[3]) as MovementEntry['satisfactionRating'],
-      bristolType: Number(columns[4]) as MovementEntry['bristolType'],
-      notes: columns[5],
-      tags: columns[6] ? columns[6].split('|').filter(Boolean) : [],
+      id,
+      createdAt,
+      updatedAt: createdAt,
+      movementTime,
+      satisfactionRating,
+      bristolType,
+      notes,
+      tags: tagsColumn ? tagsColumn.split('|').map((tag) => tag.trim()).filter(Boolean) : [],
     };
   });
 
   return entries;
+}
+
+function parseCsvLine(line: string, delimiter: ',' | ';') {
+  const columns: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+
+    if (char === '"') {
+      const next = line[index + 1];
+      if (inQuotes && next === '"') {
+        current += '"';
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+
+      continue;
+    }
+
+    if (char === delimiter && !inQuotes) {
+      columns.push(current);
+      current = '';
+      continue;
+    }
+
+    current += char;
+  }
+
+  columns.push(current);
+  return columns.map((value) => value.trim());
+}
+
+function normalizeHeader(value: string) {
+  return value.trim().toLowerCase().replaceAll(' ', '_');
+}
+
+function detectDelimiter(header: string): ',' | ';' {
+  const commaCount = (header.match(/,/g) ?? []).length;
+  const semicolonCount = (header.match(/;/g) ?? []).length;
+  return semicolonCount > commaCount ? ';' : ',';
+}
+
+function parseSatisfactionRatingCell(rawValue: string | undefined, lineNumber: number): MovementEntry['satisfactionRating'] {
+  if (!rawValue || !rawValue.trim()) {
+    return 3;
+  }
+
+  const value = parseNumericCell(rawValue);
+  if (value === 1 || value === 2 || value === 3 || value === 4 || value === 5) {
+    return value;
+  }
+
+  throw new Error(`Invalid satisfaction_rating at line ${lineNumber}. Expected 1-5.`);
+}
+
+function parseBristolTypeCell(rawValue: string | undefined, lineNumber: number): MovementEntry['bristolType'] {
+  if (!rawValue || !rawValue.trim()) {
+    return 4;
+  }
+
+  const value = parseNumericCell(rawValue);
+  if (value === 1 || value === 2 || value === 3 || value === 4 || value === 5 || value === 6 || value === 7) {
+    return value;
+  }
+
+  throw new Error(`Invalid bristol_type at line ${lineNumber}. Expected 1-7.`);
+}
+
+function parseNumericCell(rawValue: string | undefined) {
+  const value = (rawValue ?? '').trim();
+  if (!value) {
+    return Number.NaN;
+  }
+
+  const direct = Number(value);
+  if (Number.isFinite(direct)) {
+    return direct;
+  }
+
+  const match = value.match(/-?\d+(?:\.\d+)?/);
+  return match ? Number(match[0]) : Number.NaN;
 }
