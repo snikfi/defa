@@ -50,7 +50,6 @@ function App() {
   const draftValues = useMemo<QuickLogValues>(() => {
     const sourceWithRating = entries.find((entry) => entry.hasSatisfactionRating !== false);
     const sourceWithBristol = entries.find((entry) => entry.hasBristolType !== false);
-    const source = entries[0];
 
     return {
       satisfactionRating: sourceWithRating?.satisfactionRating ?? 4,
@@ -487,9 +486,6 @@ function App() {
                   onCancelEdit={() => {
                     setDuplicateModalEntry(null);
                   }}
-                  onEdit={handleEdit}
-                  onDuplicate={handleDuplicate}
-                  onDelete={handleDelete}
                 />
               }
             />

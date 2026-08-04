@@ -12,9 +12,6 @@ type DashboardPageProps = {
   editingEntry: MovementEntry | null;
   onSubmit: (values: QuickLogValues) => void;
   onCancelEdit: () => void;
-  onEdit: (entry: MovementEntry) => void;
-  onDuplicate: (entry: MovementEntry) => void;
-  onDelete: (entry: MovementEntry) => void;
 };
 
 export function DashboardPage({
@@ -24,9 +21,6 @@ export function DashboardPage({
   editingEntry,
   onSubmit,
   onCancelEdit,
-  onEdit,
-  onDuplicate,
-  onDelete,
 }: DashboardPageProps) {
   const summary = getDashboardSummary(entries);
   const todayEntries = entries.filter((entry) => sameDay(entry.movementTime, new Date()));

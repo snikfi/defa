@@ -86,7 +86,12 @@ function resolveUpdatedTime(entry: MovementEntry) {
   return entry.updatedAt ?? entry.createdAt;
 }
 
-function parseBristolType(value: number | null | undefined) {
+type ParsedMetric<T extends MovementEntry['satisfactionRating'] | MovementEntry['bristolType']> = {
+  value: T;
+  hasValue: boolean;
+};
+
+function parseBristolType(value: number | null | undefined): ParsedMetric<MovementEntry['bristolType']> {
   if (value === 1 || value === 2 || value === 3 || value === 4 || value === 5 || value === 6 || value === 7) {
     return {
       value,
@@ -100,7 +105,7 @@ function parseBristolType(value: number | null | undefined) {
   };
 }
 
-function parseSatisfactionRating(value: number | null | undefined) {
+function parseSatisfactionRating(value: number | null | undefined): ParsedMetric<MovementEntry['satisfactionRating']> {
   if (value === 1 || value === 2 || value === 3 || value === 4 || value === 5) {
     return {
       value,
