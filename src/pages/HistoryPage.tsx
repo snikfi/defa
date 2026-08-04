@@ -4,6 +4,16 @@ import { SectionCard } from '../components/SectionCard';
 import { formatShortDate, formatTime, toTimestamp } from '../lib/date';
 import { bristolDescriptions, satisfactionLabels } from '../lib/health';
 
+const bristolIllustrationByType = {
+  1: '/bristol/type-1.svg',
+  2: '/bristol/type-2.svg',
+  3: '/bristol/type-3.svg',
+  4: '/bristol/type-4.svg',
+  5: '/bristol/type-5.svg',
+  6: '/bristol/type-6.svg',
+  7: '/bristol/type-7.svg',
+} as const;
+
 type HistoryPageProps = {
   entries: MovementEntry[];
   tags: Tag[];
@@ -161,9 +171,9 @@ export function HistoryPage({ entries, tags, onEdit, onDuplicate, onDelete }: Hi
 
                   return (
                       <tr key={entry.id} className={rowClassName}>
-                        <td>{startsGroup ? dateLabel : <span className="history-table__subtle"> </span>}</td>
-                        <td>{entry.isNoMovement ? <span className="history-table__subtle">-</span> : formatTime(entry.movementTime)}</td>
-                        <td>
+                        <td data-label="Date">{startsGroup ? dateLabel : <span className="history-table__subtle"> </span>}</td>
+                        <td data-label="Time">{entry.isNoMovement ? <span className="history-table__subtle">-</span> : formatTime(entry.movementTime)}</td>
+                        <td data-label="Satisfaction">
                           {entry.hasSatisfactionRating === false ? (
                             <span className="history-status-badge" role="status" aria-label="No movement day">No movement day</span>
                           ) : (
@@ -173,17 +183,25 @@ export function HistoryPage({ entries, tags, onEdit, onDuplicate, onDelete }: Hi
                             </span>
                           )}
                         </td>
-                        <td>
+                        <td data-label="Bristol">
                           {entry.hasBristolType === false ? (
                             <span className="history-table__subtle">Not recorded</span>
                           ) : (
-                            <>
-                              <strong>Type {entry.bristolType}</strong>
-                              <div className="history-table__subtle">{bristolDescriptions[entry.bristolType]}</div>
-                            </>
+                            <div className="history-bristol-cell">
+                              <img
+                                src={bristolIllustrationByType[entry.bristolType]}
+                                alt=""
+                                aria-hidden="true"
+                                className="history-bristol-cell__illustration"
+                              />
+                              <div className="history-bristol-cell__copy">
+                                <strong>Type {entry.bristolType}</strong>
+                                <div className="history-table__subtle">{bristolDescriptions[entry.bristolType]}</div>
+                              </div>
+                            </div>
                           )}
                         </td>
-                        <td>
+                        <td data-label="Tags">
                           {tagNames.length ? (
                             <div className="chip-row">
                               {tagNames.map((tagName) => (
@@ -194,10 +212,10 @@ export function HistoryPage({ entries, tags, onEdit, onDuplicate, onDelete }: Hi
                             <span className="history-table__subtle">-</span>
                           )}
                         </td>
-                        <td>
+                        <td data-label="Notes">
                           <div className="history-table__notes">{entry.notes || '-'}</div>
                         </td>
-                        <td>
+                        <td data-label="Actions">
                           <div className="history-actions-dropdown">
                             <button
                               type="button"

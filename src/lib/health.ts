@@ -3,13 +3,13 @@ import type { MovementEntry, RangeKey } from '../types';
 import { gapInHours, sameDay, toDate, toTimestamp } from './date';
 
 export const bristolDescriptions = {
-  1: 'Separate hard lumps',
-  2: 'Lumpy and sausage-like',
-  3: 'Sausage with cracks',
-  4: 'Smooth and soft',
-  5: 'Soft blobs with clear edges',
-  6: 'Mushy consistency',
-  7: 'Watery, no solid pieces',
+  1: 'Separate hard lumps, like nuts (hard to pass)',
+  2: 'Sausage-shaped but lumpy',
+  3: 'Like a sausage but with cracks on the surface',
+  4: 'Like a sausage or snake, smooth and soft',
+  5: 'Soft blobs with clear-cut edges',
+  6: 'Fluffy pieces with ragged edges, a mushy poo',
+  7: 'Watery, no solid pieces. Entirely liquid',
 } as const;
 
 export const satisfactionLabels = {

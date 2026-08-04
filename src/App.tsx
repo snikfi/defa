@@ -34,7 +34,7 @@ function App() {
   const [entries, setEntries] = useState<MovementEntry[]>(() => loadEntries());
   const [editModalEntry, setEditModalEntry] = useState<MovementEntry | null>(null);
   const [duplicateModalEntry, setDuplicateModalEntry] = useState<MovementEntry | null>(null);
-  const [range, setRange] = useState<RangeKey>('7d');
+  const [range, setRange] = useState<RangeKey>('lifetime');
   const [syncStatus, setSyncStatus] = useState<string>(canUseCloudSync() ? 'Waiting for first sync' : 'Disabled (missing Supabase environment variables)');
   const [userId, setUserId] = useState<string | null>(null);
   const [authBusy, setAuthBusy] = useState(false);

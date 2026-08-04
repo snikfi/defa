@@ -39,13 +39,31 @@ const schema = z.object({
 }) satisfies z.ZodType<QuickLogValues>;
 
 const bristolVisualGuide: Record<BristolType, { summary: string; cue: string; tone: 'constipated' | 'ideal' | 'loose'; segments: number[] }> = {
-  1: { summary: 'Very hard', cue: 'Pebble-like lumps', tone: 'constipated', segments: [16, 14, 12, 10] },
-  2: { summary: 'Hard', cue: 'Lumpy sausage', tone: 'constipated', segments: [22, 18, 16] },
-  3: { summary: 'Firm-normal', cue: 'Sausage with cracks', tone: 'ideal', segments: [28, 24] },
-  4: { summary: 'Smooth-normal', cue: 'Smooth, soft sausage', tone: 'ideal', segments: [56] },
-  5: { summary: 'Soft', cue: 'Soft blobs', tone: 'loose', segments: [18, 20, 16] },
-  6: { summary: 'Mushy', cue: 'Fluffy pieces', tone: 'loose', segments: [12, 14, 16, 18] },
-  7: { summary: 'Watery', cue: 'No solid pieces', tone: 'loose', segments: [70] },
+  1: { summary: 'Very hard', cue: 'Separate hard lumps, like nuts (hard to pass)', tone: 'constipated', segments: [16, 14, 12, 10] },
+  2: { summary: 'Hard', cue: 'Sausage-shaped but lumpy', tone: 'constipated', segments: [22, 18, 16] },
+  3: { summary: 'Firm-normal', cue: 'Like a sausage but with cracks on the surface', tone: 'ideal', segments: [28, 24] },
+  4: { summary: 'Smooth-normal', cue: 'Like a sausage or snake, smooth and soft', tone: 'ideal', segments: [56] },
+  5: { summary: 'Soft', cue: 'Soft blobs with clear-cut edges', tone: 'loose', segments: [18, 20, 16] },
+  6: { summary: 'Mushy', cue: 'Fluffy pieces with ragged edges, a mushy poo', tone: 'loose', segments: [12, 14, 16, 18] },
+  7: { summary: 'Watery', cue: 'Watery, no solid pieces. Entirely liquid', tone: 'loose', segments: [70] },
+};
+
+const bristolIllustrationByType: Partial<Record<BristolType, string>> = {
+  1: '/bristol/type-1.svg',
+  2: '/bristol/type-2.svg',
+  3: '/bristol/type-3.svg',
+  4: '/bristol/type-4.svg',
+  5: '/bristol/type-5.svg',
+  6: '/bristol/type-6.svg',
+  7: '/bristol/type-7.svg',
+};
+
+const satisfactionToneClass: Record<SatisfactionRating, string> = {
+  1: 'segmented-control__button--rating-1',
+  2: 'segmented-control__button--rating-2',
+  3: 'segmented-control__button--rating-3',
+  4: 'segmented-control__button--rating-4',
+  5: 'segmented-control__button--rating-5',
 };
 
 type QuickLogFormProps = {
@@ -176,7 +194,11 @@ export function QuickLogForm({ tags, initialValues, editingEntry, progressive = 
                     <button
                       key={rating}
                       type="button"
-                      className={hasChosenSatisfaction && field.value === rating ? 'segmented-control__button is-active' : 'segmented-control__button'}
+                      className={[
+                        'segmented-control__button',
+                        satisfactionToneClass[rating as SatisfactionRating],
+                        hasChosenSatisfaction && field.value === rating ? 'is-active' : '',
+                      ].filter(Boolean).join(' ')}
                       onClick={() => {
                         field.onChange(rating);
                         setHasChosenSatisfaction(true);
@@ -185,7 +207,7 @@ export function QuickLogForm({ tags, initialValues, editingEntry, progressive = 
                         }
                       }}
                     >
-                      <span>{rating}</span>
+                      <span className="segmented-control__score">{rating}</span>
                       <small>{satisfactionLabels[rating as keyof typeof satisfactionLabels]}</small>
                     </button>
                   ))}
@@ -232,15 +254,28 @@ export function QuickLogForm({ tags, initialValues, editingEntry, progressive = 
                             }
                           }}
                         >
-                          <span className="bristol-card__type">Type {type}</span>
-                          <span className="bristol-card__summary">{guide.summary}</span>
-                          <span className="bristol-card__visual" aria-hidden="true">
-                            {guide.segments.map((segmentWidth, index) => (
-                              <span key={`${type}-${index}`} className="bristol-card__segment" style={{ width: `${segmentWidth}%` }} />
-                            ))}
-                          </span>
-                          <small>{bristolDescriptions[type as keyof typeof bristolDescriptions]}</small>
-                          <small className="bristol-card__cue">{guide.cue}</small>
+                          <div className="bristol-card__main">
+                            {bristolIllustrationByType[type as BristolType] ? (
+                              <span className="bristol-card__visual bristol-card__visual--illustration" aria-hidden="true">
+                                <img
+                                  src={bristolIllustrationByType[type as BristolType]}
+                                  alt=""
+                                  className="bristol-card__illustration"
+                                />
+                              </span>
+                            ) : (
+                              <span className="bristol-card__visual" aria-hidden="true">
+                                {guide.segments.map((segmentWidth, index) => (
+                                  <span key={`${type}-${index}`} className="bristol-card__segment" style={{ width: `${segmentWidth}%` }} />
+                                ))}
+                              </span>
+                            )}
+                            <span className="bristol-card__copy">
+                              <span className="bristol-card__type">Type {type}</span>
+                              <span className="bristol-card__summary">{guide.summary}</span>
+                              <small className="bristol-card__cue">{guide.cue}</small>
+                            </span>
+                          </div>
                         </button>
                       );
                     })}
