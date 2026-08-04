@@ -2,8 +2,18 @@ import type { MovementEntry, Tag } from '../types';
 import { QuickLogForm, type QuickLogValues } from '../components/QuickLogForm';
 import { SectionCard } from '../components/SectionCard';
 import { StatCard } from '../components/StatCard';
-import { bristolDescriptions, getDashboardSummary, getTimelineForDay } from '../lib/health';
+import { getDashboardSummary, getTimelineForDay, satisfactionLabels } from '../lib/health';
 import { formatTime, sameDay, timeAgo } from '../lib/date';
+
+const bristolIllustrationByType = {
+  1: '/bristol/type-1.svg',
+  2: '/bristol/type-2.svg',
+  3: '/bristol/type-3.svg',
+  4: '/bristol/type-4.svg',
+  5: '/bristol/type-5.svg',
+  6: '/bristol/type-6.svg',
+  7: '/bristol/type-7.svg',
+} as const;
 
 type DashboardPageProps = {
   entries: MovementEntry[];
@@ -41,13 +51,34 @@ export function DashboardPage({
         <SectionCard eyebrow="Today" title="Daily timeline">
           {timeline.length ? (
             <div className="timeline-list">
-              {timeline.map((entry) => (
-                <div key={entry.id} className="timeline-item">
-                  <strong>{entry.isNoMovement ? 'No movement' : formatTime(entry.movementTime)}</strong>
-                  <span>✓</span>
-                  <small>{entry.isNoMovement || entry.hasBristolType === false ? 'No movement recorded' : bristolDescriptions[entry.bristolType]}</small>
-                </div>
-              ))}
+              {timeline.map((entry) => {
+                const hasRating = !entry.isNoMovement && entry.hasSatisfactionRating !== false;
+                const hasBristolType = !entry.isNoMovement && entry.hasBristolType !== false;
+                const bristolIllustration = hasBristolType ? bristolIllustrationByType[entry.bristolType] : null;
+
+                return (
+                  <div key={entry.id} className="timeline-item">
+                    <strong>{entry.isNoMovement ? 'No movement' : formatTime(entry.movementTime)}</strong>
+                    <div className="timeline-item__status">
+                      {hasRating ? (
+                        <span className={`pill history-satisfaction-pill pill--rating-${entry.satisfactionRating}`}>
+                          <span className="history-satisfaction-pill__score">{entry.satisfactionRating}</span>
+                          <span>{satisfactionLabels[entry.satisfactionRating]}</span>
+                        </span>
+                      ) : (
+                        <span className="timeline-item__rating timeline-item__rating--muted">N/A</span>
+                      )}
+                      {bristolIllustration ? (
+                        <img
+                          src={bristolIllustration}
+                          alt={`Bristol type ${entry.bristolType} illustration`}
+                          className="timeline-item__illustration"
+                        />
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <p className="empty-state">No entries for this day yet.</p>

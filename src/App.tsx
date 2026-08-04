@@ -24,6 +24,33 @@ const navItems = [
 
 const APP_ENV = import.meta.env.VITE_APP_ENV ?? (import.meta.env.PROD ? 'production' : 'development');
 
+function padDatePart(value: number) {
+  return String(value).padStart(2, '0');
+}
+
+function toDateTimeLocalValue(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  const year = date.getFullYear();
+  const month = padDatePart(date.getMonth() + 1);
+  const day = padDatePart(date.getDate());
+  const hours = padDatePart(date.getHours());
+  const minutes = padDatePart(date.getMinutes());
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function toIsoMovementTime(value: string) {
+  const timestamp = Date.parse(value);
+  if (Number.isFinite(timestamp)) {
+    return new Date(timestamp).toISOString();
+  }
+
+  return new Date().toISOString();
+}
+
 type PendingDelete = {
   entry: MovementEntry;
   index: number;
@@ -52,6 +79,7 @@ function App() {
     const sourceWithBristol = entries.find((entry) => entry.hasBristolType !== false);
 
     return {
+      movementTime: toDateTimeLocalValue(new Date().toISOString()),
       satisfactionRating: sourceWithRating?.satisfactionRating ?? 4,
       bristolType: sourceWithBristol?.bristolType ?? 4,
       notes: '',
@@ -65,6 +93,7 @@ function App() {
     }
 
     return {
+      movementTime: toDateTimeLocalValue(editModalEntry.movementTime),
       satisfactionRating: editModalEntry.satisfactionRating,
       bristolType: editModalEntry.bristolType,
       notes: editModalEntry.notes,
@@ -78,6 +107,7 @@ function App() {
     }
 
     return {
+      movementTime: toDateTimeLocalValue(duplicateModalEntry.movementTime),
       satisfactionRating: duplicateModalEntry.satisfactionRating,
       bristolType: duplicateModalEntry.bristolType,
       notes: duplicateModalEntry.notes,
@@ -328,8 +358,10 @@ function App() {
   }
 
   function handleSubmit(values: QuickLogValues) {
+    const movementTime = toIsoMovementTime(values.movementTime);
     const nextEntry = createEntry({
       ...values,
+      movementTime,
       notes: values.notes.trim(),
     });
 
@@ -348,8 +380,10 @@ function App() {
   }
 
   function handleDuplicateSubmit(values: QuickLogValues) {
+    const movementTime = toIsoMovementTime(values.movementTime);
     const nextEntry = createEntry({
       ...values,
+      movementTime,
       notes: values.notes.trim(),
     });
 
@@ -406,7 +440,14 @@ function App() {
     setEntries((current) => {
       const updated = current.map((entry) =>
         entry.id === editingId
-          ? { ...entry, ...values, notes: values.notes.trim(), tags: values.tags, updatedAt: new Date().toISOString() }
+          ? {
+            ...entry,
+            ...values,
+            movementTime: toIsoMovementTime(values.movementTime),
+            notes: values.notes.trim(),
+            tags: values.tags,
+            updatedAt: new Date().toISOString(),
+          }
           : entry,
       );
       persistEntries(updated);

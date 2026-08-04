@@ -5,12 +5,15 @@ type SectionCardProps = {
   title: string;
   description?: string;
   action?: ReactNode;
+  className?: string;
   children: ReactNode;
 };
 
-export function SectionCard({ eyebrow, title, description, action, children }: SectionCardProps) {
+export function SectionCard({ eyebrow, title, description, action, className, children }: SectionCardProps) {
+  const sectionClassName = className ? `section-card ${className}` : 'section-card';
+
   return (
-    <section className="section-card">
+    <section className={sectionClassName}>
       <div className="section-card__header">
         <div>
           {eyebrow ? <p className="eyebrow eyebrow--muted">{eyebrow}</p> : null}

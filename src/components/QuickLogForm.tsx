@@ -7,6 +7,7 @@ import type { BristolType, MovementEntry, SatisfactionRating, Tag } from '../typ
 import { satisfactionLabels } from '../lib/health';
 
 export type QuickLogValues = {
+  movementTime: string;
   satisfactionRating: SatisfactionRating;
   bristolType: BristolType;
   notes: string;
@@ -32,6 +33,10 @@ const bristolTypeSchema = z.union([
 ]);
 
 const schema = z.object({
+  movementTime: z.string().min(1, 'Movement time is required.').refine((value) => {
+    const timestamp = Date.parse(value);
+    return Number.isFinite(timestamp) && timestamp <= Date.now();
+  }, 'Movement time cannot be in the future.'),
   satisfactionRating: satisfactionSchema,
   bristolType: bristolTypeSchema,
   notes: z.string().max(1000),
@@ -75,7 +80,27 @@ type QuickLogFormProps = {
   onCancel?: () => void;
 };
 
+function padDatePart(value: number) {
+  return String(value).padStart(2, '0');
+}
+
+function toDateTimeLocalValue(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  const year = date.getFullYear();
+  const month = padDatePart(date.getMonth() + 1);
+  const day = padDatePart(date.getDate());
+  const hours = padDatePart(date.getHours());
+  const minutes = padDatePart(date.getMinutes());
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
 export function QuickLogForm({ tags, initialValues, editingEntry, progressive = false, onSubmit, onCancel }: QuickLogFormProps) {
+  const maxMovementTime = toDateTimeLocalValue(new Date().toISOString());
+
   const form = useForm<QuickLogValues>({
     resolver: zodResolver(schema) as Resolver<QuickLogValues>,
     defaultValues: initialValues,
@@ -87,6 +112,8 @@ export function QuickLogForm({ tags, initialValues, editingEntry, progressive = 
   const [hasChosenBristol, setHasChosenBristol] = useState(!progressive || Boolean(editingEntry));
   const [showBristolChart, setShowBristolChart] = useState(false);
   const feedbackTimerRef = useRef<number | null>(null);
+  const bristolSectionRef = useRef<HTMLDivElement | null>(null);
+  const tagsSectionRef = useRef<HTMLDivElement | null>(null);
 
   const isProgressive = progressive && !editingEntry;
 
@@ -161,14 +188,24 @@ export function QuickLogForm({ tags, initialValues, editingEntry, progressive = 
           </div>
 
           <div className="bristol-chart-modal__image-shell">
-            <img
-              src="/Bristol_Stool_Chart.webp"
-              alt="Bristol stool chart with stool types 1 through 7"
-              className="bristol-chart-modal__image"
-            />
+            <object
+              data="/NHS-Bristol-stool-chart.pdf"
+              type="application/pdf"
+              className="bristol-chart-modal__pdf"
+              aria-label="NHS Bristol stool chart PDF"
+            >
+              <p className="helper-text">
+                This browser cannot display inline PDFs.
+                {' '}
+                <a href="/NHS-Bristol-stool-chart.pdf" target="_blank" rel="noopener noreferrer">Open the chart PDF</a>.
+              </p>
+            </object>
           </div>
 
           <div className="quick-log-form__footer">
+            <a href="/NHS-Bristol-stool-chart.pdf" target="_blank" rel="noopener noreferrer" className="ghost-button">
+              Open PDF
+            </a>
             <button type="button" className="ghost-button" onClick={() => setShowBristolChart(false)}>
               Close chart
             </button>
@@ -204,6 +241,9 @@ export function QuickLogForm({ tags, initialValues, editingEntry, progressive = 
                         setHasChosenSatisfaction(true);
                         if (isProgressive) {
                           setActiveStep((current) => (current < 2 ? 2 : current));
+                          window.requestAnimationFrame(() => {
+                            bristolSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          });
                         }
                       }}
                     >
@@ -217,7 +257,7 @@ export function QuickLogForm({ tags, initialValues, editingEntry, progressive = 
           </div>
 
           {!isProgressive || activeStep >= 2 ? (
-            <div className="field-group">
+            <div className="field-group quick-log-form__scroll-target" ref={bristolSectionRef}>
               <div className="field-group__heading">
                 <label htmlFor="bristolType">Bristol stool type</label>
                 <button
@@ -251,6 +291,9 @@ export function QuickLogForm({ tags, initialValues, editingEntry, progressive = 
                             setHasChosenBristol(true);
                             if (isProgressive) {
                               setActiveStep((current) => (current < 3 ? 3 : current));
+                              window.requestAnimationFrame(() => {
+                                tagsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                              });
                             }
                           }}
                         >
@@ -287,7 +330,7 @@ export function QuickLogForm({ tags, initialValues, editingEntry, progressive = 
 
           {!isProgressive || activeStep >= 3 ? (
             <>
-              <div className="field-group field-group--wide">
+              <div className="field-group field-group--wide quick-log-form__scroll-target" ref={tagsSectionRef}>
                 <label>Tags</label>
                 <div className="tag-picker">
                   {tags.map((tag) => {
@@ -313,6 +356,18 @@ export function QuickLogForm({ tags, initialValues, editingEntry, progressive = 
               <div className="field-group field-group--wide">
                 <label htmlFor="notes">Notes</label>
                 <textarea id="notes" className="textarea" placeholder="Optional context, food, symptoms, or anything noteworthy." {...form.register('notes')} />
+              </div>
+
+              <div className="field-group field-group--wide">
+                <label htmlFor="movementTime">Movement time</label>
+                <input
+                  id="movementTime"
+                  type="datetime-local"
+                  className="input"
+                  max={maxMovementTime}
+                  {...form.register('movementTime')}
+                />
+                <p className="helper-text">Default is current time. You can change it to an earlier time.</p>
               </div>
             </>
           ) : null}

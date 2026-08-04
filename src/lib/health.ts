@@ -152,6 +152,37 @@ export function getChartSeries(entries: MovementEntry[], range: RangeKey) {
     return accumulator;
   }, {});
 
+  const dayBristolTypes = filtered.reduce<Record<string, Array<MovementEntry['bristolType']>>>((accumulator, entry) => {
+    const key = format(toDate(entry.movementTime), 'yyyy-MM-dd');
+    if (entry.hasBristolType === false) {
+      return accumulator;
+    }
+
+    const current = accumulator[key] ?? [];
+    current.push(entry.bristolType);
+    accumulator[key] = current;
+    return accumulator;
+  }, {});
+
+  const dayMovements = filtered.reduce<Record<string, Array<Pick<MovementEntry, 'id' | 'movementTime' | 'satisfactionRating' | 'bristolType' | 'notes' | 'tags'>>>>((accumulator, entry) => {
+    if (entry.hasBristolType === false) {
+      return accumulator;
+    }
+
+    const key = format(toDate(entry.movementTime), 'yyyy-MM-dd');
+    const current = accumulator[key] ?? [];
+    current.push({
+      id: entry.id,
+      movementTime: entry.movementTime,
+      satisfactionRating: entry.satisfactionRating,
+      bristolType: entry.bristolType,
+      notes: entry.notes,
+      tags: entry.tags,
+    });
+    accumulator[key] = current;
+    return accumulator;
+  }, {});
+
   const coverageDates = getCoverageDates(range, filtered);
 
   return {
@@ -164,6 +195,8 @@ export function getChartSeries(entries: MovementEntry[], range: RangeKey) {
         day: key,
         label: format(date, 'EEE, MMM d'),
         value: dayCounts[key] ?? 0,
+        bristolTypes: dayBristolTypes[key] ?? [],
+        movements: dayMovements[key] ?? [],
       };
     }),
   };
