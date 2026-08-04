@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { Controller, type Resolver, type SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import type { BristolType, MovementEntry, SatisfactionRating, Tag } from '../types';
-import { bristolDescriptions, satisfactionLabels } from '../lib/health';
+import { satisfactionLabels } from '../lib/health';
 
 export type QuickLogValues = {
   satisfactionRating: SatisfactionRating;
