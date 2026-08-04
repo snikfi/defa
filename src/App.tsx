@@ -48,12 +48,14 @@ function App() {
   const ownerEmail = getConfiguredOwnerEmail() ?? '';
 
   const draftValues = useMemo<QuickLogValues>(() => {
+    const sourceWithRating = entries.find((entry) => entry.hasSatisfactionRating !== false);
+    const sourceWithBristol = entries.find((entry) => entry.hasBristolType !== false);
     const source = entries[0];
 
     return {
-      satisfactionRating: source?.satisfactionRating ?? 4,
-      bristolType: source?.bristolType ?? 4,
-      notes: source?.notes ?? '',
+      satisfactionRating: sourceWithRating?.satisfactionRating ?? 4,
+      bristolType: sourceWithBristol?.bristolType ?? 4,
+      notes: '',
       tags: [],
     };
   }, [entries]);
@@ -112,6 +114,9 @@ function App() {
     const normalized = next.map((entry) => ({
       ...entry,
       updatedAt: entry.updatedAt ?? entry.createdAt,
+      hasSatisfactionRating: entry.hasSatisfactionRating ?? true,
+      hasBristolType: entry.hasBristolType ?? true,
+      isNoMovement: entry.isNoMovement ?? entry.hasSatisfactionRating === false,
     }))
       .sort((left, right) => toTimestamp(right.movementTime) - toTimestamp(left.movementTime));
 

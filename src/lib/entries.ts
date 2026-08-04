@@ -49,6 +49,9 @@ export function createEntry(draft: EntryDraft) {
     bristolType: draft.bristolType,
     notes: draft.notes,
     tags: draft.tags,
+    hasSatisfactionRating: true,
+    hasBristolType: true,
+    isNoMovement: false,
   } satisfies MovementEntry;
 }
 
@@ -66,8 +69,8 @@ export function toCsv(entries: MovementEntry[]) {
     entry.id,
     entry.createdAt,
     entry.movementTime,
-    String(entry.satisfactionRating),
-    String(entry.bristolType),
+    entry.hasSatisfactionRating === false ? '' : String(entry.satisfactionRating),
+    entry.hasBristolType === false ? '' : String(entry.bristolType),
     entry.notes,
     entry.tags.join('|'),
   ]);
@@ -134,8 +137,8 @@ export function parseCsv(csv: string) {
     const id = columns[getIndex('id')]?.trim();
     const createdAt = parseTimestampCell(columns[getIndex('created_at')], lineNumber, 'created_at');
     const movementTime = parseTimestampCell(columns[getIndex('movement_time')], lineNumber, 'movement_time');
-    const satisfactionRating = parseSatisfactionRatingCell(columns[getIndex('satisfaction_rating')], lineNumber);
-    const bristolType = parseBristolTypeCell(columns[getIndex('bristol_type')], lineNumber);
+    const satisfaction = parseSatisfactionRatingCell(columns[getIndex('satisfaction_rating')], lineNumber);
+    const bristol = parseBristolTypeCell(columns[getIndex('bristol_type')], lineNumber);
     const notes = columns[getIndex('notes')] ?? '';
     const tagsColumn = columns[getIndex('tags')] ?? '';
 
@@ -148,10 +151,13 @@ export function parseCsv(csv: string) {
       createdAt,
       updatedAt: createdAt,
       movementTime,
-      satisfactionRating,
-      bristolType,
+      satisfactionRating: satisfaction.value,
+      bristolType: bristol.value,
       notes,
       tags: tagsColumn ? tagsColumn.split('|').map((tag) => tag.trim()).filter(Boolean) : [],
+      hasSatisfactionRating: satisfaction.hasValue,
+      hasBristolType: bristol.hasValue,
+      isNoMovement: !satisfaction.hasValue,
     };
   });
 
@@ -201,27 +207,44 @@ function detectDelimiter(header: string): ',' | ';' {
   return semicolonCount > commaCount ? ';' : ',';
 }
 
-function parseSatisfactionRatingCell(rawValue: string | undefined, lineNumber: number): MovementEntry['satisfactionRating'] {
+type ParsedLegacyMetric<T extends number> = {
+  value: T;
+  hasValue: boolean;
+};
+
+function parseSatisfactionRatingCell(rawValue: string | undefined, lineNumber: number): ParsedLegacyMetric<MovementEntry['satisfactionRating']> {
   if (!rawValue || !rawValue.trim()) {
-    return 3;
+    return {
+      value: 3,
+      hasValue: false,
+    };
   }
 
   const value = parseNumericCell(rawValue);
   if (value === 1 || value === 2 || value === 3 || value === 4 || value === 5) {
-    return value;
+    return {
+      value,
+      hasValue: true,
+    };
   }
 
   throw new Error(`Invalid satisfaction_rating at line ${lineNumber}. Expected 1-5.`);
 }
 
-function parseBristolTypeCell(rawValue: string | undefined, lineNumber: number): MovementEntry['bristolType'] {
+function parseBristolTypeCell(rawValue: string | undefined, lineNumber: number): ParsedLegacyMetric<MovementEntry['bristolType']> {
   if (!rawValue || !rawValue.trim()) {
-    return 4;
+    return {
+      value: 4,
+      hasValue: false,
+    };
   }
 
   const value = parseNumericCell(rawValue);
   if (value === 1 || value === 2 || value === 3 || value === 4 || value === 5 || value === 6 || value === 7) {
-    return value;
+    return {
+      value,
+      hasValue: true,
+    };
   }
 
   throw new Error(`Invalid bristol_type at line ${lineNumber}. Expected 1-7.`);

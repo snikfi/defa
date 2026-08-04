@@ -17,7 +17,7 @@ export const satisfactionLabels = {
   2: 'Difficult exit',
   3: 'Okay',
   4: 'Good',
-  5: 'Very satisfying',
+  5: 'Satisfying',
 } as const;
 
 function average(values: number[]) {
@@ -26,6 +26,14 @@ function average(values: number[]) {
   }
 
   return values.reduce((sum, current) => sum + current, 0) / values.length;
+}
+
+function getMovementEntries(entries: MovementEntry[]) {
+  return entries.filter((entry) => entry.isNoMovement !== true && entry.hasSatisfactionRating !== false);
+}
+
+function getBristolRecordedEntries(entries: MovementEntry[]) {
+  return entries.filter((entry) => entry.hasBristolType !== false);
 }
 
 function filterByRange(entries: MovementEntry[], range: RangeKey) {
@@ -66,18 +74,20 @@ function trendLabel(values: number[]) {
 }
 
 export function getDashboardSummary(entries: MovementEntry[]) {
-  const todayEntries = entries.filter((entry) => sameDay(entry.movementTime, new Date()));
-  const weekEntries = filterByRange(entries, '7d');
-  const monthEntries = filterByRange(entries, '30d');
+  const movementEntries = getMovementEntries(entries);
+  const todayEntries = movementEntries.filter((entry) => sameDay(entry.movementTime, new Date()));
+  const weekEntries = filterByRange(movementEntries, '7d');
+  const monthEntries = filterByRange(movementEntries, '30d');
+  const weekBristolEntries = getBristolRecordedEntries(weekEntries);
 
-  const ordered = [...entries].sort((left, right) => toTimestamp(right.movementTime) - toTimestamp(left.movementTime));
+  const ordered = [...movementEntries].sort((left, right) => toTimestamp(right.movementTime) - toTimestamp(left.movementTime));
   const futureToleranceMs = 5 * 60 * 1000;
   const latest = ordered.find((entry) => toTimestamp(entry.movementTime) <= Date.now() + futureToleranceMs) ?? ordered[0];
-  const lifetimeAverage = average(entries.map((entry) => entry.satisfactionRating));
-  const averagePerDay = entries.length / Math.max(1, new Set(entries.map((entry) => startOfDay(toDate(entry.movementTime)).toISOString())).size);
+  const lifetimeAverage = average(movementEntries.map((entry) => entry.satisfactionRating));
+  const averagePerDay = movementEntries.length / Math.max(1, new Set(movementEntries.map((entry) => startOfDay(toDate(entry.movementTime)).toISOString())).size);
 
   const commonBristol = Object.entries(
-    entries.reduce<Record<string, number>>((accumulator, entry) => {
+    getBristolRecordedEntries(movementEntries).reduce<Record<string, number>>((accumulator, entry) => {
       const key = String(entry.bristolType);
       accumulator[key] = (accumulator[key] ?? 0) + 1;
       return accumulator;
@@ -94,15 +104,15 @@ export function getDashboardSummary(entries: MovementEntry[]) {
     week: {
       count: weekEntries.length,
       average: average(weekEntries.map((entry) => entry.satisfactionRating)),
-      averageBristol: average(weekEntries.map((entry) => entry.bristolType)),
+      averageBristol: average(weekBristolEntries.map((entry) => entry.bristolType)),
     },
     month: {
       count: monthEntries.length,
       average: average(monthEntries.map((entry) => entry.satisfactionRating)),
-      trend: trendLabel(entries.slice().sort((left, right) => +toDate(left.movementTime) - +toDate(right.movementTime)).map((entry) => entry.satisfactionRating)),
+      trend: trendLabel(movementEntries.slice().sort((left, right) => +toDate(left.movementTime) - +toDate(right.movementTime)).map((entry) => entry.satisfactionRating)),
     },
     overall: {
-      lifetimeEntries: entries.length,
+      lifetimeEntries: movementEntries.length,
       lifetimeAverage,
       averagePerDay,
       commonBristol: Number(commonBristol) as 1 | 2 | 3 | 4 | 5 | 6 | 7,
@@ -117,7 +127,7 @@ export function getTimelineForDay(entries: MovementEntry[], day: Date) {
 }
 
 export function getChartSeries(entries: MovementEntry[], range: RangeKey) {
-  const filtered = filterByRange(entries, range).sort((left, right) => +toDate(left.movementTime) - +toDate(right.movementTime));
+  const filtered = filterByRange(getMovementEntries(entries), range).sort((left, right) => +toDate(left.movementTime) - +toDate(right.movementTime));
 
   const frequency = filtered.reduce<Record<string, number>>((accumulator, entry) => {
     const key = formatRangeLabel(entry, range);
@@ -160,11 +170,13 @@ export function getChartSeries(entries: MovementEntry[], range: RangeKey) {
 }
 
 export function getLongestGap(entries: MovementEntry[]) {
-  if (entries.length < 2) {
+  const movementEntries = getMovementEntries(entries);
+
+  if (movementEntries.length < 2) {
     return 0;
   }
 
-  const ordered = entries.slice().sort((left, right) => +toDate(left.movementTime) - +toDate(right.movementTime));
+  const ordered = movementEntries.slice().sort((left, right) => +toDate(left.movementTime) - +toDate(right.movementTime));
   return ordered.reduce((longest, entry, index) => {
     if (index === 0) {
       return longest;
@@ -178,7 +190,7 @@ export function getLongestGap(entries: MovementEntry[]) {
 export function getBestAndWorstWeeks(entries: MovementEntry[]) {
   const weeks = new Map<string, number[]>();
 
-  entries.forEach((entry) => {
+  getMovementEntries(entries).forEach((entry) => {
     const weekKey = startOfWeek(toDate(entry.movementTime), { weekStartsOn: 1 }).toISOString();
     const current = weeks.get(weekKey) ?? [];
     current.push(entry.satisfactionRating);

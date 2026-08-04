@@ -16,6 +16,9 @@ export type MovementEntry = {
   bristolType: BristolType;
   notes: string;
   tags: string[];
+  hasSatisfactionRating?: boolean;
+  hasBristolType?: boolean;
+  isNoMovement?: boolean;
   updatedAt?: string;
 };
 

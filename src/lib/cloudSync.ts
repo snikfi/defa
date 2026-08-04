@@ -15,8 +15,8 @@ type CloudMovementRecord = {
   created_at?: string;
   updated_at?: string;
   movement_time?: string;
-  satisfaction_rating?: number;
-  bristol_type?: number;
+  satisfaction_rating?: number | null;
+  bristol_type?: number | null;
   notes?: string;
   bowel_movement_tags?: CloudRelationRecord[];
 };
@@ -31,24 +31,87 @@ export function canUseCloudSync() {
   return isSupabaseConfigured && Boolean(supabase);
 }
 
+const LEGACY_META_PREFIX = '[defa_meta:';
+
+function stripLegacyMetaFromNotes(notes: string) {
+  return notes.replace(/\s*\[defa_meta:[^\]]+\]\s*$/u, '').trimEnd();
+}
+
+function readLegacyMetaFromNotes(rawNotes: string | undefined) {
+  const notes = typeof rawNotes === 'string' ? rawNotes : '';
+  const match = notes.match(/\[defa_meta:([^\]]+)\]\s*$/u);
+  if (!match) {
+    return {
+      notes,
+      hasSatisfactionRating: true,
+      hasBristolType: true,
+      isNoMovement: false,
+    };
+  }
+
+  const tokens = match[1]
+    .split(',')
+    .map((token) => token.trim().toLowerCase())
+    .filter(Boolean);
+
+  const hasNoMovement = tokens.includes('no_movement');
+  const hasNoBristol = tokens.includes('no_bristol');
+
+  return {
+    notes: stripLegacyMetaFromNotes(notes),
+    hasSatisfactionRating: !hasNoMovement,
+    hasBristolType: !hasNoBristol,
+    isNoMovement: hasNoMovement,
+  };
+}
+
+function writeLegacyMetaToNotes(entry: MovementEntry) {
+  const tokens: string[] = [];
+  if (entry.hasSatisfactionRating === false || entry.isNoMovement === true) {
+    tokens.push('no_movement');
+  }
+  if (entry.hasBristolType === false) {
+    tokens.push('no_bristol');
+  }
+
+  const cleanNotes = stripLegacyMetaFromNotes(entry.notes ?? '');
+  if (!tokens.length) {
+    return cleanNotes;
+  }
+
+  return `${cleanNotes} ${LEGACY_META_PREFIX}${tokens.join(',')}]`.trim();
+}
+
 function resolveUpdatedTime(entry: MovementEntry) {
   return entry.updatedAt ?? entry.createdAt;
 }
 
-function parseBristolType(value: number | undefined): MovementEntry['bristolType'] {
+function parseBristolType(value: number | null | undefined) {
   if (value === 1 || value === 2 || value === 3 || value === 4 || value === 5 || value === 6 || value === 7) {
-    return value;
+    return {
+      value,
+      hasValue: true,
+    };
   }
 
-  return 4;
+  return {
+    value: 4 as MovementEntry['bristolType'],
+    hasValue: false,
+  };
 }
 
-function parseSatisfactionRating(value: number | undefined): MovementEntry['satisfactionRating'] {
+function parseSatisfactionRating(value: number | null | undefined) {
   if (value === 1 || value === 2 || value === 3 || value === 4 || value === 5) {
-    return value;
+    return {
+      value,
+      hasValue: true,
+    };
   }
 
-  return 3;
+  return {
+    value: 3 as MovementEntry['satisfactionRating'],
+    hasValue: false,
+  };
 }
 
 function hasRequiredMovementFields(row: CloudMovementRecord): row is CloudMovementRecordWithRequiredFields {
@@ -95,18 +158,26 @@ export async function hydrateEntriesFromCloud(localEntries: MovementEntry[], use
   const remoteEntries = (Array.isArray(data) ? data : [])
     .map((row) => row as CloudMovementRecord)
     .filter(hasRequiredMovementFields)
-    .map((row) => ({
-      id: row.id,
-      createdAt: row.created_at,
-      updatedAt: typeof row.updated_at === 'string' ? row.updated_at : row.created_at,
-      movementTime: row.movement_time,
-      satisfactionRating: parseSatisfactionRating(row.satisfaction_rating),
-      bristolType: parseBristolType(row.bristol_type),
-      notes: typeof row.notes === 'string' ? row.notes : '',
-      tags: (Array.isArray(row.bowel_movement_tags) ? row.bowel_movement_tags : [])
-        .map((item) => item.tags?.normalized_name)
-        .filter((value): value is string => typeof value === 'string' && value.length > 0),
-    }));
+    .map((row) => {
+      const satisfaction = parseSatisfactionRating(row.satisfaction_rating);
+      const bristol = parseBristolType(row.bristol_type);
+      const legacyMeta = readLegacyMetaFromNotes(typeof row.notes === 'string' ? row.notes : '');
+      return {
+        id: row.id,
+        createdAt: row.created_at,
+        updatedAt: typeof row.updated_at === 'string' ? row.updated_at : row.created_at,
+        movementTime: row.movement_time,
+        satisfactionRating: satisfaction.value,
+        bristolType: bristol.value,
+        hasSatisfactionRating: legacyMeta.hasSatisfactionRating && satisfaction.hasValue,
+        hasBristolType: legacyMeta.hasBristolType && bristol.hasValue,
+        isNoMovement: legacyMeta.isNoMovement || !satisfaction.hasValue,
+        notes: legacyMeta.notes,
+        tags: (Array.isArray(row.bowel_movement_tags) ? row.bowel_movement_tags : [])
+          .map((item) => item.tags?.normalized_name)
+          .filter((value): value is string => typeof value === 'string' && value.length > 0),
+      };
+    });
 
   return mergeEntries(localEntries, remoteEntries);
 }
@@ -128,7 +199,7 @@ export async function pushEntriesToCloud(entries: MovementEntry[], userId: strin
     movement_time: entry.movementTime,
     satisfaction_rating: entry.satisfactionRating,
     bristol_type: entry.bristolType,
-    notes: entry.notes,
+    notes: writeLegacyMetaToNotes(entry),
   }));
 
   const { error: upsertError } = await supabase

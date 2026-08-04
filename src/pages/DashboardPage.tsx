@@ -1,6 +1,4 @@
-import { motion } from 'framer-motion';
 import type { MovementEntry, Tag } from '../types';
-import { EntryCard } from '../components/EntryCard';
 import { QuickLogForm, type QuickLogValues } from '../components/QuickLogForm';
 import { SectionCard } from '../components/SectionCard';
 import { StatCard } from '../components/StatCard';
@@ -43,7 +41,7 @@ export function DashboardPage({
           title={editingEntry ? 'Edit bowel movement' : 'Record a movement'}
           action={editingEntry ? <span className="pill pill--blue">Editing</span> : undefined}
         >
-          <QuickLogForm tags={tags} initialValues={draftValues} editingEntry={editingEntry} onSubmit={onSubmit} onCancel={onCancelEdit} />
+          <QuickLogForm tags={tags} initialValues={draftValues} editingEntry={editingEntry} progressive onSubmit={onSubmit} onCancel={onCancelEdit} />
         </SectionCard>
 
         <SectionCard eyebrow="Today" title="Daily timeline">
@@ -51,9 +49,9 @@ export function DashboardPage({
             <div className="timeline-list">
               {timeline.map((entry) => (
                 <div key={entry.id} className="timeline-item">
-                  <strong>{formatTime(entry.movementTime)}</strong>
+                  <strong>{entry.isNoMovement ? 'No movement' : formatTime(entry.movementTime)}</strong>
                   <span>✓</span>
-                  <small>{bristolDescriptions[entry.bristolType]}</small>
+                  <small>{entry.isNoMovement || entry.hasBristolType === false ? 'No movement recorded' : bristolDescriptions[entry.bristolType]}</small>
                 </div>
               ))}
             </div>
@@ -61,8 +59,11 @@ export function DashboardPage({
             <p className="empty-state">No entries for this day yet.</p>
           )}
           <div className="subtle-note">
-            <p>Last movement: {summary.today.latest ? formatTime(summary.today.latest.movementTime) : 'None'}</p>
-            <p>Time since last: {summary.today.latest ? timeAgo(summary.today.latest.movementTime) : 'No entry yet'}</p>
+            <p>
+              {summary.today.latest
+                ? `Last movement ${formatTime(summary.today.latest.movementTime)}, ${timeAgo(summary.today.latest.movementTime)}`
+                : 'Last movement: No entry yet'}
+            </p>
           </div>
         </SectionCard>
       </div>
@@ -87,16 +88,6 @@ export function DashboardPage({
         <StatCard label="This Month" value={String(summary.month.count)} detail={`Trend: ${summary.month.trend}`} tone="warning" />
         <StatCard label="Overall" value={String(summary.overall.lifetimeEntries)} detail={`${summary.overall.lifetimeAverage.toFixed(1)}/5 lifetime average`} />
       </div>
-
-      <SectionCard eyebrow="Recent history" title="Latest entries" description="Cards support edit, duplicate, and delete actions.">
-        <div className="entry-list">
-          {entries.length ? entries.slice(0, 4).map((entry) => (
-            <motion.div key={entry.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-              <EntryCard entry={entry} tags={tags} onEdit={onEdit} onDuplicate={onDuplicate} onDelete={onDelete} />
-            </motion.div>
-          )) : <p className="empty-state">No entries yet. Start with the quick log form.</p>}
-        </div>
-      </SectionCard>
     </div>
   );
 }
