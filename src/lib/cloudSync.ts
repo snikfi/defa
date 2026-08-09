@@ -196,6 +196,11 @@ export async function pushEntriesToCloud(entries: MovementEntry[], userId: strin
     return;
   }
 
+  // Never push an empty list — it would delete all cloud data if hydration hasn't run yet.
+  if (entries.length === 0) {
+    return;
+  }
+
   const rows = entries.map((entry) => ({
     id: entry.id,
     user_id: userId,
