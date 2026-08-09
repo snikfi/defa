@@ -47,13 +47,13 @@ function filterByRange(entries: MovementEntry[], range: RangeKey) {
     range === 'today'
       ? startOfDay(now)
       : range === '7d'
-        ? subDays(now, 6)
+        ? startOfDay(subDays(now, 6))
         : range === '30d'
-          ? subDays(now, 29)
+          ? startOfDay(subDays(now, 29))
           : range === '90d'
-            ? subDays(now, 89)
+            ? startOfDay(subDays(now, 89))
             : range === 'year'
-              ? subDays(now, 364)
+              ? startOfDay(subDays(now, 364))
               : startOfDay(now);
 
   return entries.filter((entry) => toDate(entry.movementTime) >= threshold);
