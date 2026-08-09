@@ -1,6 +1,8 @@
 import type { EntryDraft, MovementEntry } from '../types';
 import { isValid, parse, parseISO } from 'date-fns';
-import { seededEntries } from '../data/mockData';
+import { readStorage, writeStorage } from './storage';
+
+const STORAGE_KEY = 'bowel-tracker.entries.v2';
 
 function generateEntryId() {
   if (typeof globalThis.crypto !== 'undefined' && typeof globalThis.crypto.randomUUID === 'function') {
@@ -28,14 +30,13 @@ function generateEntryId() {
 export function loadEntries() {
   if (typeof window !== 'undefined') {
     window.localStorage.removeItem('bowel-tracker.entries.v1');
-    window.localStorage.removeItem('bowel-tracker.entries.v2');
   }
 
-  return seededEntries;
+  return readStorage<MovementEntry[]>(STORAGE_KEY, []);
 }
 
 export function persistEntries(entries: MovementEntry[]) {
-  void entries;
+  writeStorage(STORAGE_KEY, entries);
 }
 
 export function createEntry(draft: EntryDraft) {
