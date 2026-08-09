@@ -19,6 +19,11 @@ export function SettingsPage({ entries, onImportEntries, onDeleteAllData, syncSt
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const [deleteAllBusy, setDeleteAllBusy] = useState(false);
 
+  const lastBackupStr = window.localStorage.getItem('bowel-tracker.last-backup');
+  const lastBackupLabel = lastBackupStr
+    ? `Last auto-backup: ${new Date(lastBackupStr).toLocaleDateString(undefined, { dateStyle: 'medium' })}`
+    : 'No auto-backup yet';
+
   useEffect(() => {
     if (!showDeleteAllConfirm) {
       return;
@@ -80,6 +85,7 @@ export function SettingsPage({ entries, onImportEntries, onDeleteAllData, syncSt
         {status.tone === 'progress' ? <p className="helper-text" role="status" aria-live="polite">{status.message}</p> : null}
         {status.tone === 'idle' ? <p className="helper-text">{status.message}</p> : null}
         <p className="helper-text">Cloud sync: {syncStatus}</p>
+        <p className="helper-text">{lastBackupLabel}</p>
       </SectionCard>
 
       <SectionCard eyebrow="Danger zone" title="Delete all data" description="This removes all records from this device and your cloud database account.">

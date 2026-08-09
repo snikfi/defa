@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Navigate, NavLink, Route, Routes } from 'react-router-dom';
 import { defaultTags } from './data/mockData';
 import type { MovementEntry, RangeKey } from './types';
-import { createEntry, loadEntries, persistEntries } from './lib/entries';
+import { createEntry, loadEntries, persistEntries, toCsv } from './lib/entries';
 import { canUseCloudSync, clearAllEntriesFromCloud, hydrateEntriesFromCloud, pushEntriesToCloud } from './lib/cloudSync';
 import { toTimestamp } from './lib/date';
 import { getConfiguredOwnerEmail, getCurrentUserId, onAuthStateChange, signInOwner, signOutOwner } from './lib/supabase';
@@ -70,6 +70,7 @@ function App() {
   const [deleteCandidate, setDeleteCandidate] = useState<MovementEntry | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const hydrationCompleteRef = useRef(false);
+  const [hydrationComplete, setHydrationComplete] = useState(false);
   const modalPanelRef = useRef<HTMLElement | null>(null);
   const deleteCancelButtonRef = useRef<HTMLButtonElement | null>(null);
   const ownerEmail = getConfiguredOwnerEmail() ?? '';
@@ -239,11 +240,13 @@ function App() {
     async function hydrate() {
       if (!canUseCloudSync()) {
         hydrationCompleteRef.current = true;
+        setHydrationComplete(true);
         return;
       }
 
       if (!userId) {
         hydrationCompleteRef.current = true;
+        setHydrationComplete(true);
         return;
       }
 
@@ -261,6 +264,7 @@ function App() {
         }
       } finally {
         hydrationCompleteRef.current = true;
+        setHydrationComplete(true);
       }
     }
 
@@ -270,6 +274,29 @@ function App() {
       isCancelled = true;
     };
   }, [userId]);
+
+  useEffect(() => {
+    if (!hydrationComplete || entries.length === 0) {
+      return;
+    }
+
+    const INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
+    const lastStr = window.localStorage.getItem('bowel-tracker.last-backup');
+    const lastMs = lastStr ? new Date(lastStr).getTime() : 0;
+    if (Date.now() - lastMs < INTERVAL_MS) {
+      return;
+    }
+
+    const blob = new Blob([toCsv(entries)], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10);
+    link.href = url;
+    link.download = `defa-backup-${date}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    window.localStorage.setItem('bowel-tracker.last-backup', new Date().toISOString());
+  }, [hydrationComplete, entries]);
 
   useEffect(() => {
     if (!canUseCloudSync() || !hydrationCompleteRef.current || !userId) {
